@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coaching Receipt Maker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#f5f4f0; --card:#ffffff; --ink:#1d1d1f; --muted:#6b6b70; --line:#e4e2dc;
+    --accent:#2f6f5e; --accent-soft:#e6f0ec; --danger:#b3412f;
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:15px}
+  header{padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  header h1{font-size:20px;margin:0;font-weight:700}
+  header p{margin:2px 0 0;color:var(--muted);font-size:13px}
+  .tabs{display:flex;gap:6px;background:#e9e7e1;padding:4px;border-radius:10px}
+  .tabs button{border:0;background:transparent;padding:8px 14px;border-radius:8px;font:inherit;font-weight:500;color:var(--muted);cursor:pointer}
+  .tabs button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  main{padding:0 20px 40px;max-width:1200px;margin:0 auto}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+  @media (max-width:880px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+  .card h2{font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 12px;font-weight:600}
+  .card + .card{margin-top:16px}
+  label{display:block;font-size:13px;font-weight:500;margin:10px 0 4px}
+  input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff;color:var(--ink)}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+  textarea{resize:vertical;min-height:60px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .items{width:100%;border-collapse:collapse;margin-top:6px}
+  .items th{font-size:12px;color:var(--muted);text-align:left;font-weight:500;padding:4px}
+  .items td{padding:3px}
+  .items td:nth-child(2),.items td:nth-child(3){width:90px}
+  .items td:last-child{width:34px}
+  .x{border:0;background:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px 8px}
+  .x:hover{color:var(--danger)}
+  .btn{border:1px solid var(--line);background:#fff;padding:9px 14px;border-radius:8px;font:inherit;font-weight:500;cursor:pointer;color:var(--ink)}
+  .btn:hover{background:#faf9f6}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .btn.primary:hover{filter:brightness(1.07)}
+  .btn.small{padding:6px 10px;font-size:13px}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .hint{color:var(--muted);font-size:12px;margin-top:6px}
+  .sticky{position:sticky;top:12px}
+  /* Receipt */
+  #receipt{background:#fff;color:#1d1d1f;padding:36px 34px;border:1px solid var(--line);border-radius:6px;font-size:14px;line-height:1.45}
+  .r-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:2px solid var(--accent);padding-bottom:14px}
+  .r-title{font-size:26px;font-weight:700;letter-spacing:.04em;color:var(--accent)}
+  .r-from{font-weight:600;font-size:16px}
+  .r-sub{color:#6b6b70;font-size:13px;white-space:pre-line}
+  .r-meta{text-align:right;font-size:13px}
+  .r-meta b{display:inline-block;min-width:80px;color:#6b6b70;font-weight:500}
+  .r-to{margin:18px 0 6px}
+  .r-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#6b6b70;font-weight:600}
+  .r-table{width:100%;border-collapse:collapse;margin-top:14px}
+  .r-table th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#6b6b70;text-align:left;border-bottom:1px solid #e4e2dc;padding:8px 6px;font-weight:600}
+  .r-table td{padding:9px 6px;border-bottom:1px solid #f0eee9;vertical-align:top}
+  .r-table .num{text-align:right;white-space:nowrap}
+  .r-total{display:flex;justify-content:flex-end;margin-top:12px}
+  .r-total div{background:var(--accent-soft);padding:10px 16px;border-radius:6px;font-size:16px}
+  .r-total b{color:var(--accent);margin-left:12px;font-size:18px}
+  .r-paid{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px}
+  .r-notes{margin-top:16px;font-size:13px;white-space:pre-line}
+  .r-foot{margin-top:28px;display:flex;justify-content:space-between;align-items:flex-end;gap:16px}
+  .r-stamp{border:2px solid var(--accent);color:var(--accent);font-weight:700;padding:4px 12px;border-radius:4px;transform:rotate(-6deg);letter-spacing:.1em}
+  .r-sign{text-align:center;font-size:13px;color:#6b6b70}
+  .r-sign div{border-top:1px solid #ccc;padding-top:4px;min-width:160px;color:#1d1d1f;font-weight:500}
+  .r-words{font-size:12px;color:#6b6b70;text-align:right;margin-top:4px}
+  /* History */
+  .hist-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+  .hist-top input{max-width:320px}
+  .hist{width:100%;border-collapse:collapse}
+  .hist th{text-align:left;font-size:12px;color:var(--muted);font-weight:500;padding:8px;border-bottom:1px solid var(--line)}
+  .hist td{padding:10px 8px;border-bottom:1px solid #f0eee9}
+  .hist td.num{text-align:right;white-space:nowrap}
+  .hist .ops{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+  .empty{color:var(--muted);text-align:center;padding:30px}
+  .stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;min-width:150px}
+  .stat span{display:block;font-size:12px;color:var(--muted)}
+  .stat b{font-size:20px}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1d1d1f;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+  .toast.show{opacity:1}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:8;padding:20px}
+  .modal.show{display:flex}
+  .modal .box{background:#fff;border-radius:12px;padding:20px;max-width:380px;width:100%}
+  .modal .box p{margin:0 0 16px}
+  .hidden{display:none !important}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Coaching Receipt Maker</h1>
+    <p>Make a receipt, save it as a PDF, and regenerate any old one later.</p>
+  </div>
+  <div class="tabs">
+    <button id="tabNew" class="on">New receipt</button>
+    <button id="tabHist">Past receipts</button>
+    <button id="tabMe">My details</button>
+  </div>
+</header>
+
+<main>
+  <!-- NEW RECEIPT -->
+  <section id="viewNew" class="grid">
+    <div>
+      <div class="card">
+        <h2>Receipt</h2>
+        <div class="row">
+          <div><label>Receipt no.</label><input id="fNo"></div>
+          <div><label>Date</label><input id="fDate" type="date"></div>
+        </div>
+        <label>Client name</label><input id="fClient" placeholder="e.g. Priya Sharma">
+        <label>Client phone / email (optional)</label><input id="fClientContact" placeholder="optional">
+      </div>
+
+      <div class="card">
+        <h2>What they paid for</h2>
+        <table class="items">
+          <thead><tr><th>Description</th><th>Sessions</th><th>Rate</th><th></th></tr></thead>
+          <tbody id="itemRows"></tbody>
+        </table>
+        <div class="actions" style="margin-top:8px"><button class="btn small" id="addItem">+ Add line</button></div>
+        <div class="row">
+          <div><label>Currency</label>
+            <select id="fCur"><option value="₹">₹ INR</option><option value="$">$ USD</option><option value="€">€ EUR</option><option value="£">£ GBP</option></select>
+          </div>
+          <div><label>Discount (optional)</label><input id="fDisc" type="number" min="0" step="any" placeholder="0"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Payment</h2>
+        <div class="row">
+          <div><label>Paid via</label>
+            <select id="fMethod"><option>UPI</option><option>Cash</option><option>Bank transfer</option><option>Card</option><option>PayPal</option><option>Other</option></select>
+          </div>
+          <div><label>Transaction ID (optional)</label><input id="fTxn" placeholder="optional"></div>
+        </div>
+        <label>Note (optional)</label><textarea id="fNotes" placeholder="e.g. Thank you! Next session on Monday."></textarea>
+        <div class="actions">
+          <button class="btn primary" id="btnSave">Save receipt</button>
+          <button class="btn" id="btnPdf">Download PDF</button>
+          <button class="btn" id="btnCopy">Copy as text</button>
+          <button class="btn" id="btnClear">Start fresh</button>
+        </div>
+        <div class="hint" id="editHint"></div>
+      </div>
+    </div>
+
+    <div class="sticky">
+      <div id="receipt"></div>
+      <div class="hint">This is exactly how your PDF will look.</div>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="viewHist" class="hidden">
+    <div class="stats">
+      <div class="stat"><span>Receipts</span><b id="sCount">0</b></div>
+      <div class="stat"><span>This month</span><b id="sMonth">0</b></div>
+      <div class="stat"><span>All time</span><b id="sAll">0</b></div>
+    </div>
+    <div class="card">
+      <div class="hist-top">
+        <input id="search" placeholder="Search client, receipt no, description…">
+        <span style="flex:1"></span>
+        <button class="btn small" id="btnExport">Back up all</button>
+        <label class="btn small" style="margin:0">Restore backup<input type="file" id="fileImport" accept=".json,application/json" class="hidden"></label>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="hist">
+          <thead><tr><th>No.</th><th>Date</th><th>Client</th><th style="text-align:right">Amount</th><th></th></tr></thead>
+          <tbody id="histRows"></tbody>
+        </table>
+      </div>
+      <div class="hint">Receipts are saved in this browser. Use “Back up all” now and then so you never lose them.</div>
+    </div>
+  </section>
+
+  <!-- MY DETAILS -->
+  <section id="viewMe" class="hidden">
+    <div class="card" style="max-width:560px">
+      <h2>My details (shown on every receipt)</h2>
+      <label>Your name</label><input id="mName" placeholder="e.g. Sairam Akhil">
+      <label>What you do (optional)</label><input id="mRole" placeholder="e.g. Fitness Coach, Career Coaching">
+      <label>Phone / email / UPI ID (optional)</label><textarea id="mContact" placeholder="One per line"></textarea>
+      <label>Receipt number starts with</label><input id="mPrefix" placeholder="R-">
+      <label>Default rate per session (optional)</label><input id="mRate" type="number" min="0" step="any">
+      <label>Default description (optional)</label><input id="mDesc" placeholder="e.g. 1:1 coaching session">
+      <div class="actions"><button class="btn primary" id="btnMeSave">Save my details</button></div>
+      <div class="hint">No business name needed — just your own name.</div>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="modal"><div class="box"><p id="modalText"></p><div class="actions" style="justify-content:flex-end;margin:0"><button class="btn" id="modalNo">Cancel</button><button class="btn primary" id="modalYes">Delete</button></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const KEY_R = 'crm_receipts_v1', KEY_ME = 'crm_me_v1';
+  const store = {
+    get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+    set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
+  };
+  let receipts = store.get(KEY_R, []);
+  let me = store.get(KEY_ME, {name:'', role:'', contact:'', prefix:'R-', rate:'', desc:''});
+  let editingId = null;
+  let downloads = null;
+  if (window.claude && typeof window.claude.use === 'function') {
+    window.claude.use('downloads').then(d => { downloads = d; }).catch(()=>{});
+  }
+
+  function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2200); }
+  function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function today(){ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+  function fmtDate(s){ if(!s) return ''; const d=new Date(s+'T00:00:00'); return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); }
+  function money(cur, n){ const v = Number(n)||0; const loc = cur==='₹' ? 'en-IN' : 'en-US'; return cur + v.toLocaleString(loc,{minimumFractionDigits: v%1?2:0, maximumFractionDigits:2}); }
+
+  // Indian-style amount in words (for ₹)
+  function words(num){
+    num = Math.floor(Number(num)||0); if(num===0) return 'Zero';
+    const a=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+    const b=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+    const two=n=> n<20?a[n]:b[Math.floor(n/10)]+(n%10?' '+a[n%10]:'');
+    const three=n=> (n>=100? a[Math.floor(n/100)]+' Hundred'+(n%100?' '+two(n%100):'') : two(n));
+    let out=[]; const cr=Math.floor(num/1e7); num%=1e7; const lk=Math.floor(num/1e5); num%=1e5; const th=Math.floor(num/1000); num%=1000;
+    if(cr) out.push(three(cr)+' Crore'); if(lk) out.push(two(lk)+' Lakh'); if(th) out.push(two(th)+' Thousand'); if(num) out.push(three(num));
+    return out.join(' ');
+  }
+
+  function nextNo(){
+    const p = me.prefix || 'R-';
+    let max = 0;
+    receipts.forEach(r=>{ if(String(r.no).startsWith(p)){ const n=parseInt(String(r.no).slice(p.length),10); if(n>max) max=n; } });
+    return p + String(max+1).padStart(3,'0');
+  }
+
+  // ---------- Items ----------
+  function addRow(it){
+    it = it || {desc: me.desc||'', qty:1, rate: me.rate||''};
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td><input class="iDesc" placeholder="e.g. Coaching session"></td><td><input class="iQty" type="number" min="0" step="any"></td><td><input class="iRate" type="number" min="0" step="any"></td><td><button class="x" title="Remove">×</button></td>`;
+    tr.querySelector('.iDesc').value = it.desc; tr.querySelector('.iQty').value = it.qty; tr.querySelector('.iRate').value = it.rate;
+    tr.querySelector('.x').onclick = ()=>{ tr.remove(); if(!$('itemRows').children.length) addRow(); render(); };
+    tr.querySelectorAll('input').forEach(i=>i.addEventListener('input', render));
+    $('itemRows').appendChild(tr);
+  }
+  function readItems(){
+    return [...$('itemRows').children].map(tr=>({
+      desc: tr.querySelector('.iDesc').value.trim(),
+      qty: parseFloat(tr.querySelector('.iQty').value)||0,
+      rate: parseFloat(tr.querySelector('.iRate').value)||0
+    })).filter(i=>i.desc || i.qty*i.rate);
+  }
+
+  function readForm(){
+    const items = readItems();
+    const sub = items.reduce((s,i)=>s+i.qty*i.rate,0);
+    const disc = parseFloat($('fDisc').value)||0;
+    return {
+      no: $('fNo').value.trim(), date: $('fDate').value, client: $('fClient').value.trim(),
+      clientContact: $('fClientContact').value.trim(), items, cur: $('fCur').value, disc,
+      total: Math.max(0, sub-disc), sub, method: $('fMethod').value, txn: $('fTxn').value.trim(), notes: $('fNotes').value.trim()
+    };
+  }
+  function fillForm(r){
+    $('fNo').value=r.no; $('fDate').value=r.date; $('fClient').value=r.client; $('fClientContact').value=r.clientContact||'';
+    $('fCur').value=r.cur||'₹'; $('fDisc').value=r.disc||''; $('fMethod').value=r.method||'UPI'; $('fTxn').value=r.txn||''; $('fNotes').value=r.notes||'';
+    $('itemRows').innerHTML=''; (r.items.length?r.items:[null]).forEach(addRow);
+    render();
+  }
+  function freshForm(){
+    editingId=null;
+    fillForm({no:nextNo(), date:today(), client:'', clientContact:'', items:[], cur: (receipts[0]&&receipts[0].cur)||'₹', disc:'', method:'UPI', txn:'', notes:''});
+    $('editHint').textContent='';
+  }
+
+  // ---------- Receipt preview ----------
+  function render(){
+    const r = readForm();
+    const rows = r.items.length ? r.items.map(i=>`<tr><td>${esc(i.desc)||'—'}</td><td class="num">${i.qty}</td><td class="num">${money(r.cur,i.rate)}</td><td class="num">${money(r.cur,i.qty*i.rate)}</td></tr>`).join('')
+      : `<tr><td colspan="4" style="color:#aaa">Add what the client paid for</td></tr>`;
+    const discRow = r.disc ? `<tr><td colspan="3" class="num" style="color:#6b6b70">Discount</td><td class="num">− ${money(r.cur,r.disc)}</td></tr>` : '';
+    $('receipt').innerHTML = `
+      <div class="r-top">
+        <div>
+          <div class="r-title">RECEIPT</div>
+          <div class="r-from" style="margin-top:8px">${esc(me.name)||'<span style="color:#bbb">Your name</span>'}</div>
+          ${me.role?`<div class="r-sub">${esc(me.role)}</div>`:''}
+          ${me.contact?`<div class="r-sub">${esc(me.contact)}</div>`:''}
+        </div>
+        <div class="r-meta">
+          <div><b>Receipt no.</b> ${esc(r.no)}</div>
+          <div><b>Date</b> ${fmtDate(r.date)}</div>
+        </div>
+      </div>
+      <div class="r-to">
+        <div class="r-label">Received from</div>
+        <div style="font-weight:600;font-size:15px">${esc(r.client)||'<span style="color:#bbb">Client name</span>'}</div>
+        ${r.clientContact?`<div class="r-sub">${esc(r.clientContact)}</div>`:''}
+      </div>
+      <table class="r-table">
+        <thead><tr><th>Description</th><th class="num">Sessions</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead>
+        <tbody>${rows}${discRow}</tbody>
+      </table>
+      <div class="r-total"><div>Total paid <b>${money(r.cur,r.total)}</b></div></div>
+      ${r.cur==='₹' && r.total ? `<div class="r-words">Rupees ${words(r.total)} only</div>`:''}
+      <div class="r-paid">
+        <div><div class="r-label">Paid via</div>${esc(r.method)}</div>
+        ${r.txn?`<div><div class="r-label">Transaction ID</div>${esc(r.txn)}</div>`:''}
+      </div>
+      ${r.notes?`<div class="r-notes">${esc(r.notes)}</div>`:''}
+      <div class="r-foot">
+        <div class="r-stamp">PAID</div>
+        <div class="r-sign"><div>${esc(me.name)||'&nbsp;'}</div></div>
+      </div>`;
+  }
+
+  // ---------- Save / PDF / copy ----------
+  function validate(r){
+    if(!me.name){ toast('Add your name in “My details” first'); show('Me'); return false; }
+    if(!r.client){ toast('Add the client name'); $('fClient').focus(); return false; }
+    if(!r.items.length){ toast('Add at least one line'); return false; }
+    return true;
+  }
+  function saveReceipt(silent){
+    const r = readForm(); if(!validate(r)) return null;
+    if(editingId){
+      const i = receipts.findIndex(x=>x.id===editingId);
+      if(i>=0) receipts[i] = {...receipts[i], ...r, updated: Date.now()};
+    } else {
+      if(receipts.some(x=>x.no===r.no)) r.no = nextNo(), $('fNo').value=r.no;
+      editingId = 'r'+Date.now()+Math.random().toString(36).slice(2,6);
+      receipts.unshift({id: editingId, created: Date.now(), ...r});
+    }
+    const ok = store.set(KEY_R, receipts);
+    $('editHint').textContent = 'Saved as '+r.no+'. Changes you make now update this receipt.';
+    if(!silent) toast(ok ? 'Receipt saved' : 'Saved for now (this browser can’t keep it after closing)');
+    renderHist();
+    return r;
+  }
+
+  async function makePdfBlob(){
+    const node = $('receipt');
+    const canvas = await html2canvas(node, {scale:2, backgroundColor:'#ffffff'});
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({unit:'mm', format:'a4'});
+    const pw = 210, margin = 12, w = pw - margin*2;
+    const h = canvas.height * w / canvas.width;
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', margin, margin, w, h);
+    return pdf.output('blob');
+  }
+  async function downloadPdf(){
+    const r = saveReceipt(true); if(!r) return;
+    if(!window.html2canvas || !window.jspdf){ toast('PDF tools are still loading, try again in a moment'); return; }
+    const name = `Receipt ${r.no} - ${r.client}.pdf`.replace(/[\\/:*?"<>|]/g,'');
+    try{
+      const blob = await makePdfBlob();
+      if(downloads){
+        try{ await downloads.save({filename:name, data:blob}); toast('PDF saved'); }
+        catch(e){ if(e && e.code==='declined') return; toast('Could not save the PDF here'); }
+      } else {
+        const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=>URL.revokeObjectURL(a.href), 4000); toast('PDF downloaded');
+      }
+    }catch(e){ toast('Something went wrong making the PDF'); }
+  }
+  function asText(r){
+    const lines = [`RECEIPT ${r.no}`, `Date: ${fmtDate(r.date)}`, `From: ${me.name}`, `Received from: ${r.client}`, ''];
+    r.items.forEach(i=>lines.push(`${i.desc} — ${i.qty} × ${money(r.cur,i.rate)} = ${money(r.cur,i.qty*i.rate)}`));
+    if(r.disc) lines.push(`Discount: − ${money(r.cur,r.disc)}`);
+    lines.push('', `Total paid: ${money(r.cur,r.total)}`, `Paid via: ${r.method}${r.txn?' (Txn: '+r.txn+')':''}`);
+    if(r.notes) lines.push('', r.notes);
+    return lines.join('\n');
+  }
+  async function copyText(){
+    const r = readForm(); if(!validate(r)) return;
+    try{ await navigator.clipboard.writeText(asText(r)); toast('Copied — paste it in WhatsApp or email'); }
+    catch(e){ toast('Copy is blocked here — select the text from the receipt instead'); }
+  }
+
+  // ---------- History ----------
+  function renderHist(){
+    const q = $('search').value.trim().toLowerCase();
+    const list = receipts.filter(r=> !q || [r.no,r.client,r.clientContact,...r.items.map(i=>i.desc)].join(' ').toLowerCase().includes(q));
+    $('histRows').innerHTML = list.length ? list.map(r=>`
+      <tr>
+        <td>${esc(r.no)}</td><td>${fmtDate(r.date)}</td><td>${esc(r.client)}</td><td class="num">${money(r.cur,r.total)}</td>
+        <td><div class="ops">
+          <button class="btn small" data-op="open" data-id="${r.id}">Open</button>
+          <button class="btn small" data-op="dup" data-id="${r.id}">Repeat for client</button>
+          <button class="btn small" data-op="del" data-id="${r.id}">Delete</button>
+        </div></td>
+      </tr>`).join('') : `<tr><td colspan="5" class="empty">${receipts.length?'No match':'No receipts yet — make your first one in “New receipt”.'}</td></tr>`;
+    // stats (main currency only)
+    const cur = (receipts[0]&&receipts[0].cur)||'₹';
+    const same = receipts.filter(r=>r.cur===cur);
+    const ym = today().slice(0,7);
+    $('sCount').textContent = receipts.length;
+    $('sMonth').textContent = money(cur, same.filter(r=>(r.date||'').startsWith(ym)).reduce((s,r)=>s+r.total,0));
+    $('sAll').textContent = money(cur, same.reduce((s,r)=>s+r.total,0));
+  }
+  $('histRows').addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    const r = receipts.find(x=>x.id===b.dataset.id); if(!r) return;
+    if(b.dataset.op==='open'){ editingId=r.id; fillForm(r); $('editHint').textContent='Opened '+r.no+'. Download the PDF again or edit and save.'; show('New'); }
+    if(b.dataset.op==='dup'){ editingId=null; fillForm({...r, no:nextNo(), date:today(), txn:''}); $('editHint').textContent='New receipt for '+r.client+' — check the details and save.'; show('New'); }
+    if(b.dataset.op==='del'){ confirmBox(`Delete receipt ${r.no} for ${r.client}?`, ()=>{ receipts=receipts.filter(x=>x.id!==r.id); store.set(KEY_R,receipts); if(editingId===r.id) freshForm(); renderHist(); toast('Deleted'); }); }
+  });
+  $('search').addEventListener('input', renderHist);
+
+  function confirmBox(text, yes){
+    $('modalText').textContent=text; $('modal').classList.add('show');
+    $('modalYes').onclick=()=>{ $('modal').classList.remove('show'); yes(); };
+    $('modalNo').onclick=()=>$('modal').classList.remove('show');
+  }
+
+  // Backup / restore
+  $('btnExport').onclick = async ()=>{
+    if(!receipts.length){ toast('Nothing to back up yet'); return; }
+    const data = JSON.stringify({me, receipts}, null, 2);
+    const name = `receipts-backup-${today()}.json`;
+    if(downloads){ try{ await downloads.save({filename:name, data}); toast('Backup saved'); }catch(e){ if(!e||e.code!=='declined') toast('Could not save backup here'); } }
+    else { const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([data],{type:'application/json'})); a.download=name; a.click(); toast('Backup downloaded'); }
+  };
+  $('fileImport').onchange = e=>{
+    const f = e.target.files[0]; if(!f) return;
+    f.text().then(t=>{
+      const d = JSON.parse(t);
+      if(!Array.isArray(d.receipts)) throw 0;
+      const ids = new Set(receipts.map(r=>r.id));
+      d.receipts.forEach(r=>{ if(!ids.has(r.id)) receipts.push(r); });
+      receipts.sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.created||0)-(a.created||0));
+      if(d.me && !me.name){ me = d.me; store.set(KEY_ME, me); loadMe(); }
+      store.set(KEY_R, receipts); renderHist(); render(); toast('Backup restored');
+    }).catch(()=>toast('That file isn’t a receipts backup'));
+    e.target.value='';
+  };
+
+  // ---------- My details ----------
+  function loadMe(){ $('mName').value=me.name||''; $('mRole').value=me.role||''; $('mContact').value=me.contact||''; $('mPrefix').value=me.prefix||'R-'; $('mRate').value=me.rate||''; $('mDesc').value=me.desc||''; }
+  $('btnMeSave').onclick = ()=>{
+    me = {name:$('mName').value.trim(), role:$('mRole').value.trim(), contact:$('mContact').value.trim(), prefix:$('mPrefix').value.trim()||'R-', rate:$('mRate').value, desc:$('mDesc').value.trim()};
+    store.set(KEY_ME, me); toast('Your details are saved');
+    if(!editingId && !$('fClient').value) freshForm(); else render();
+    show('New');
+  };
+
+  // ---------- Tabs ----------
+  function show(v){
+    ['New','Hist','Me'].forEach(n=>{ $('view'+n).classList.toggle('hidden', n!==v); $('tab'+n).classList.toggle('on', n===v); });
+    if(v==='Hist') renderHist();
+    window.scrollTo(0,0);
+  }
+  $('tabNew').onclick=()=>show('New'); $('tabHist').onclick=()=>show('Hist'); $('tabMe').onclick=()=>show('Me');
+
+  // wire up
+  ['fNo','fDate','fClient','fClientContact','fCur','fDisc','fMethod','fTxn','fNotes'].forEach(id=>$(id).addEventListener('input', render));
+  $('addItem').onclick=()=>{ addRow(); render(); };
+  $('btnSave').onclick=()=>saveReceipt();
+  $('btnPdf').onclick=downloadPdf;
+  $('btnCopy').onclick=copyText;
+  $('btnClear').onclick=freshForm;
+
+  loadMe(); freshForm(); renderHist();
+  if(!me.name) show('Me');
+})();
+</script>
+</body>
+</html>
