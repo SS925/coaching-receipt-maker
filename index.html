@@ -185,6 +185,15 @@
   .layouts button b{display:block;font-size:14px}
   .layouts button span{font-size:12px;color:var(--muted)}
   .layouts button.on{border-color:var(--accent);background:var(--accent-soft)}
+  .quick{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .qstyles{display:flex;gap:4px;background:#e9e7e1;padding:4px;border-radius:10px;flex-wrap:wrap}
+  .qstyles button{border:0;background:transparent;padding:7px 11px;border-radius:7px;font:inherit;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+  .qstyles button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+  .qcolors{display:flex;gap:7px}
+  .qcolors button{width:26px;height:26px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;position:relative}
+  .qcolors button::after{content:"";position:absolute;right:-1px;bottom:-1px;width:9px;height:9px;border-radius:50%;background:#c9a24b;border:1.5px solid #fff}
+  .qcolors button[data-t=blue]::after{background:#93c5fd}
+  .qcolors button.on{box-shadow:0 0 0 2px var(--ink)}
   .themes{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
   .themes button{width:38px;height:38px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer}
   .themes button.on{box-shadow:0 0 0 2px var(--ink)}
@@ -294,6 +303,21 @@
     </div>
 
     <div class="sticky">
+      <div class="quick">
+        <div class="qstyles" id="qLayout">
+          <button data-l="classic">Classic</button>
+          <button data-l="stripe">Stripe-style</button>
+          <button data-l="geometric">Geometric</button>
+          <button data-l="minimal">Minimal</button>
+        </div>
+        <div class="qcolors" id="qTheme">
+          <button data-t="navy" title="Navy" style="background:#14284b"></button>
+          <button data-t="black" title="Black" style="background:#1a1a1a"></button>
+          <button data-t="maroon" title="Maroon" style="background:#5e1626"></button>
+          <button data-t="green" title="Green" style="background:#1f5a4b"></button>
+          <button data-t="blue" title="Blue" style="background:#1d4ed8"></button>
+        </div>
+      </div>
       <div id="receipt"></div>
       <div class="hint">This is exactly how your PDF will look.</div>
     </div>
@@ -337,14 +361,14 @@
       </div>
       <label>Usually paid via</label><select id="mMethod"><option>Remitly</option><option>UPI</option><option>Cash</option><option>Bank transfer</option><option>Card</option><option>PayPal</option><option>Other</option></select>
       <label>Description on receipt</label><input id="mDesc" placeholder="Monthly coaching (Mon–Fri)">
-      <label>Receipt style</label>
+      <label>Default receipt style (you can also change it per receipt above the preview)</label>
       <div class="layouts" id="mLayout">
         <button data-l="classic"><b>Classic premium</b><span>Dark header, gold frame, serif</span></button>
         <button data-l="stripe"><b>Modern (Stripe-style)</b><span>Amount, date &amp; method up top</span></button>
         <button data-l="minimal"><b>Minimal</b><span>Warm paper, lots of white space</span></button>
         <button data-l="geometric"><b>Geometric</b><span>Bold shapes and colour cards</span></button>
       </div>
-      <label>Receipt colour</label>
+      <label>Default receipt colour</label>
       <div class="themes" id="mTheme">
         <button data-t="navy" title="Navy & gold" style="background:linear-gradient(135deg,#14284b 60%,#c19a49 60%)"></button>
         <button data-t="black" title="Black & gold" style="background:linear-gradient(135deg,#1a1a1a 60%,#c9a24b 60%)"></button>
@@ -454,6 +478,16 @@
     return p + String(max+1).padStart(3,'0');
   }
 
+  // ---------- Per-receipt look ----------
+  var curLayout = 'classic', curTheme = 'navy';
+  function setLook(l, t){
+    curLayout = l||curLayout; curTheme = t||curTheme;
+    document.querySelectorAll('#qLayout button').forEach(b=>b.classList.toggle('on', b.dataset.l===curLayout));
+    document.querySelectorAll('#qTheme button').forEach(b=>b.classList.toggle('on', b.dataset.t===curTheme));
+  }
+  document.querySelectorAll('#qLayout button').forEach(b=>b.onclick=()=>{ setLook(b.dataset.l); render(); });
+  document.querySelectorAll('#qTheme button').forEach(b=>b.onclick=()=>{ setLook(null, b.dataset.t); render(); });
+
   // ---------- Monthly coaching helpers ----------
   const DEF = {rate:750, cur:'$', method:'Remitly', desc:'Monthly coaching (Mon–Fri)'};
   const thisMonth = () => today().slice(0,7);
@@ -495,6 +529,7 @@
       no: $('fNo').value.trim(), date: $('fDate').value, client: $('fClient').value.trim(),
       clientContact: $('fClientContact').value.trim(), items, cur: $('fCur').value, disc,
       total: Math.max(0, sub-disc), sub, method: $('fMethod').value, txn: $('fTxn').value.trim(), notes: $('fNotes').value.trim(),
+      layout: curLayout, theme: curTheme,
       month: $('fMonth').value, fx: $('fCur').value==='₹' ? 0 : (parseFloat($('fFx').value)||0), inr: $('fCur').value==='₹' ? 0 : (parseFloat($('fInr').value)||0)
     };
   }
@@ -502,6 +537,7 @@
     $('fNo').value=r.no; $('fDate').value=r.date; $('fClient').value=r.client; $('fClientContact').value=r.clientContact||'';
     $('fCur').value=r.cur||DEF.cur; $('fDisc').value=r.disc||''; $('fMethod').value=r.method||DEF.method; $('fTxn').value=r.txn||''; $('fNotes').value=r.notes||'';
     $('fMonth').value=r.month||''; $('fFx').value=r.fx||''; $('fInr').value=r.inr||'';
+    setLook(r.layout||me.layout||'classic', r.theme||me.theme||'navy');
     $('itemRows').innerHTML=''; (r.items.length?r.items:[null]).forEach(addRow);
     render();
   }
@@ -522,8 +558,8 @@
       : `<tr><td colspan="4" style="color:#aaa">Add what the client paid for</td></tr>`;
     const discRow = r.disc ? `<tr><td colspan="3" class="num" style="color:#6b6b70">Discount</td><td class="num">− ${money(r.cur,r.disc)}</td></tr>` : '';
     const initials = (me.name||'').trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('') || '✦';
-    const L = me.layout||'classic';
-    $('receipt').className = 't-'+(me.theme||'navy')+' L-'+L;
+    const L = r.layout||'classic';
+    $('receipt').className = 't-'+(r.theme||'navy')+' L-'+L;
     const ctx = {r, rows, discRow, initials};
     $('receipt').innerHTML = (LAYOUTS[L]||LAYOUTS.classic)(ctx);
   }
@@ -808,10 +844,10 @@
   function loadMe(){ $('mName').value=me.name||''; $('mRole').value=me.role||''; $('mContact').value=me.contact||''; $('mPrefix').value=me.prefix||'R-'; $('mRate').value=me.rate||''; $('mDesc').value=me.desc||''; $('mCur').value=me.cur||DEF.cur; $('mMethod').value=me.method||DEF.method; pickTheme(me.theme||'navy'); pickLayout(me.layout||'classic'); if(typeof showImgs==='function') showImgs(); }
   let layoutSel='classic';
   function pickLayout(l){ layoutSel=l; document.querySelectorAll('#mLayout button').forEach(b=>b.classList.toggle('on', b.dataset.l===l)); }
-  document.querySelectorAll('#mLayout button').forEach(b=>b.onclick=()=>{ pickLayout(b.dataset.l); me = {...me, layout:b.dataset.l}; render(); });
+  document.querySelectorAll('#mLayout button').forEach(b=>b.onclick=()=>{ pickLayout(b.dataset.l); me = {...me, layout:b.dataset.l}; if(!editingId) setLook(b.dataset.l); render(); });
   let themeSel='navy';
   function pickTheme(t){ themeSel=t; document.querySelectorAll('#mTheme button').forEach(b=>b.classList.toggle('on', b.dataset.t===t)); }
-  document.querySelectorAll('#mTheme button').forEach(b=>b.onclick=()=>{ pickTheme(b.dataset.t); me = {...me, theme:b.dataset.t}; render(); });
+  document.querySelectorAll('#mTheme button').forEach(b=>b.onclick=()=>{ pickTheme(b.dataset.t); me = {...me, theme:b.dataset.t}; if(!editingId) setLook(null, b.dataset.t); render(); });
   $('btnMeSave').onclick = ()=>{
     me = {name:$('mName').value.trim(), role:$('mRole').value.trim(), contact:$('mContact').value.trim(), prefix:$('mPrefix').value.trim()||'R-', rate:$('mRate').value, desc:$('mDesc').value.trim(), cur:$('mCur').value, method:$('mMethod').value, theme: themeSel, layout: layoutSel, logo: me.logo||'', sig: me.sig||'', updated: Date.now()};
     store.set(KEY_ME, me); toast('Your details are saved'); sync('Update my details');
