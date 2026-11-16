@@ -716,14 +716,25 @@
   }
 
   async function makePdfBlob(){
-    const node = $('receipt');
-    const canvas = await html2canvas(node, {scale:2, backgroundColor:'#ffffff'});
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({unit:'mm', format:'a4'});
-    const pw = 210, margin = 12, w = pw - margin*2;
-    const h = canvas.height * w / canvas.width;
-    pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', margin, margin, w, h);
-    return pdf.output('blob');
+    // Render a copy of the receipt at a fixed desktop width so the PDF is the same on phone and computer
+    const src = $('receipt');
+    const holder = document.createElement('div');
+    holder.style.cssText = 'position:absolute;left:-12000px;top:0;width:760px;background:#fff;';
+    const clone = src.cloneNode(true);
+    holder.appendChild(clone); document.body.appendChild(holder);
+    try{
+      if(document.fonts && document.fonts.ready) await document.fonts.ready;
+      await Promise.all([...clone.querySelectorAll('img')].map(im => im.decode ? im.decode().catch(()=>{}) : null));
+      const canvas = await html2canvas(clone, {scale:2.5, backgroundColor:'#ffffff', windowWidth:1280, scrollX:0, scrollY:0, x:0, y:0, width:clone.offsetWidth, height:clone.offsetHeight});
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({unit:'mm', format:'a4'});
+      const PW = 210, PH = 297, M = 10;
+      const ratio = canvas.height / canvas.width;
+      let w = PW - M*2, h = w * ratio;
+      if(h > PH - M*2){ h = PH - M*2; w = h / ratio; }   // shrink to fit one page
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', (PW - w)/2, M, w, h);
+      return pdf.output('blob');
+    } finally { holder.remove(); }
   }
   function pdfName(r){ return `Receipt ${r.no} - ${r.client}.pdf`.replace(/[\\/:*?"<>|]/g,''); }
   async function deliver(blob, name){
