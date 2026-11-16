@@ -12,6 +12,16 @@ A simple receipt maker for freelance coaching — no business name needed.
 - Monthly and all-time totals.
 - Back up / restore all receipts as a JSON file.
 
-Receipts are stored in your browser (localStorage), so they stay on the device you use. Back up regularly.
+## Saving receipts to GitHub (private)
+Receipts are saved to a separate **private** repo (default `SS925/coaching-receipts-data`) as `receipts.json`, one commit per receipt. This public repo only holds the app — never your receipts.
+
+One-time setup on each device:
+1. Create a private repo `coaching-receipts-data` (tick "Add a README").
+2. Create a fine-grained token at https://github.com/settings/personal-access-tokens/new
+   - Repository access: **Only select repositories** → `coaching-receipts-data`
+   - Repository permissions: **Contents → Read and write**
+3. In the app, open **My details** → paste the token → **Connect & save**.
+
+The token is kept only in that browser. Without a token, receipts are saved in the browser only.
 
 Everything is in one file: `index.html`.

@@ -92,6 +92,15 @@
   .modal .box{background:#fff;border-radius:12px;padding:20px;max-width:380px;width:100%}
   .modal .box p{margin:0 0 16px}
   .hidden{display:none !important}
+  .sync{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+  .sync i{width:8px;height:8px;border-radius:50%;background:#bbb;display:inline-block}
+  .sync.ok i{background:#2f9e6e} .sync.busy i{background:#d9a320} .sync.err i{background:var(--danger)}
+  .sync.err{color:var(--danger);border-color:#efc9c2}
+  .steps{margin:8px 0 0;padding-left:20px;color:var(--muted);font-size:13px;line-height:1.6}
+  .steps b{color:var(--ink)}
+  .msg{font-size:13px;margin-top:10px;padding:8px 10px;border-radius:8px;background:#f5f4f0}
+  .msg.ok{background:var(--accent-soft);color:var(--accent)} .msg.err{background:#fbeae6;color:var(--danger)}
+  .head-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -100,10 +109,13 @@
     <h1>Coaching Receipt Maker</h1>
     <p>Make a receipt, save it as a PDF, and regenerate any old one later.</p>
   </div>
-  <div class="tabs">
-    <button id="tabNew" class="on">New receipt</button>
-    <button id="tabHist">Past receipts</button>
-    <button id="tabMe">My details</button>
+  <div class="head-right">
+    <button class="sync" id="syncPill" title="GitHub saving"><i></i><span>GitHub: not connected</span></button>
+    <div class="tabs">
+      <button id="tabNew" class="on">New receipt</button>
+      <button id="tabHist">Past receipts</button>
+      <button id="tabMe">My details</button>
+    </div>
   </div>
 </header>
 
@@ -198,6 +210,29 @@
       <div class="actions"><button class="btn primary" id="btnMeSave">Save my details</button></div>
       <div class="hint">No business name needed — just your own name.</div>
     </div>
+
+    <div class="card" style="max-width:560px">
+      <h2>Save receipts to GitHub</h2>
+      <div class="hint" style="margin-top:0">Every receipt you save is stored in your <b>private</b> GitHub repo, so only you can see it and it shows up on all your devices.</div>
+      <div class="row">
+        <div><label>GitHub username</label><input id="gOwner" placeholder="SS925"></div>
+        <div><label>Private repo for receipts</label><input id="gRepo" placeholder="coaching-receipts-data"></div>
+      </div>
+      <label>GitHub key (token)</label><input id="gToken" type="password" autocomplete="off" placeholder="github_pat_…">
+      <div class="actions">
+        <button class="btn primary" id="btnGhConnect">Connect &amp; save</button>
+        <button class="btn" id="btnGhOff">Disconnect this device</button>
+      </div>
+      <div class="msg hidden" id="ghMsg"></div>
+      <ol class="steps">
+        <li>On GitHub, create a <b>private</b> repo named <b>coaching-receipts-data</b> (tick “Add a README”).</li>
+        <li>Go to <b>github.com/settings/personal-access-tokens/new</b> (Settings → Developer settings → Fine-grained tokens → Generate new token).</li>
+        <li>Name it “Receipt app”. Under <b>Repository access</b> pick <b>Only select repositories</b> → <b>coaching-receipts-data</b>.</li>
+        <li>Under <b>Permissions → Repository permissions</b>, set <b>Contents</b> to <b>Read and write</b>.</li>
+        <li>Click <b>Generate token</b>, copy it, paste it above and tap <b>Connect &amp; save</b>. Do this once on each device.</li>
+      </ol>
+      <div class="hint">The key stays only in this browser and can only touch that one receipts repo.</div>
+    </div>
   </section>
 </main>
 
@@ -214,6 +249,9 @@
   };
   let receipts = store.get(KEY_R, []);
   let me = store.get(KEY_ME, {name:'', role:'', contact:'', prefix:'R-', rate:'', desc:''});
+  const KEY_GH = 'crm_github_v1', KEY_T = 'crm_deleted_v1';
+  let gh = store.get(KEY_GH, {owner:'SS925', repo:'coaching-receipts-data', token:''});
+  let tomb = store.get(KEY_T, []);
   let editingId = null;
   let downloads = null;
   if (window.claude && typeof window.claude.use === 'function') {
@@ -341,12 +379,16 @@
     } else {
       if(receipts.some(x=>x.no===r.no)) r.no = nextNo(), $('fNo').value=r.no;
       editingId = 'r'+Date.now()+Math.random().toString(36).slice(2,6);
-      receipts.unshift({id: editingId, created: Date.now(), ...r});
+      receipts.unshift({id: editingId, created: Date.now(), updated: Date.now(), ...r});
     }
+    const cur = JSON.stringify(r);
+    const changed = cur !== lastSaved[editingId];
+    lastSaved[editingId] = cur;
     const ok = store.set(KEY_R, receipts);
     $('editHint').textContent = 'Saved as '+r.no+'. Changes you make now update this receipt.';
-    if(!silent) toast(ok ? 'Receipt saved' : 'Saved for now (this browser can’t keep it after closing)');
+    if(!silent) toast(gh.token ? 'Receipt saved — sending to GitHub' : (ok ? 'Receipt saved' : 'Saved for now (this browser can’t keep it after closing)'));
     renderHist();
+    if(changed) sync(`Receipt ${r.no} – ${r.client} – ${money(r.cur,r.total)}`);
     return r;
   }
 
@@ -415,7 +457,7 @@
     const r = receipts.find(x=>x.id===b.dataset.id); if(!r) return;
     if(b.dataset.op==='open'){ editingId=r.id; fillForm(r); $('editHint').textContent='Opened '+r.no+'. Download the PDF again or edit and save.'; show('New'); }
     if(b.dataset.op==='dup'){ editingId=null; fillForm({...r, no:nextNo(), date:today(), txn:''}); $('editHint').textContent='New receipt for '+r.client+' — check the details and save.'; show('New'); }
-    if(b.dataset.op==='del'){ confirmBox(`Delete receipt ${r.no} for ${r.client}?`, ()=>{ receipts=receipts.filter(x=>x.id!==r.id); store.set(KEY_R,receipts); if(editingId===r.id) freshForm(); renderHist(); toast('Deleted'); }); }
+    if(b.dataset.op==='del'){ confirmBox(`Delete receipt ${r.no} for ${r.client}?`, ()=>{ receipts=receipts.filter(x=>x.id!==r.id); tomb.push(r.id); store.set(KEY_T,tomb); store.set(KEY_R,receipts); if(editingId===r.id) freshForm(); renderHist(); toast('Deleted'); sync(`Delete receipt ${r.no} – ${r.client}`); }); }
   });
   $('search').addEventListener('input', renderHist);
 
@@ -442,7 +484,7 @@
       d.receipts.forEach(r=>{ if(!ids.has(r.id)) receipts.push(r); });
       receipts.sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.created||0)-(a.created||0));
       if(d.me && !me.name){ me = d.me; store.set(KEY_ME, me); loadMe(); }
-      store.set(KEY_R, receipts); renderHist(); render(); toast('Backup restored');
+      store.set(KEY_R, receipts); renderHist(); render(); toast('Backup restored'); sync('Restore receipts from backup');
     }).catch(()=>toast('That file isn’t a receipts backup'));
     e.target.value='';
   };
@@ -450,11 +492,94 @@
   // ---------- My details ----------
   function loadMe(){ $('mName').value=me.name||''; $('mRole').value=me.role||''; $('mContact').value=me.contact||''; $('mPrefix').value=me.prefix||'R-'; $('mRate').value=me.rate||''; $('mDesc').value=me.desc||''; }
   $('btnMeSave').onclick = ()=>{
-    me = {name:$('mName').value.trim(), role:$('mRole').value.trim(), contact:$('mContact').value.trim(), prefix:$('mPrefix').value.trim()||'R-', rate:$('mRate').value, desc:$('mDesc').value.trim()};
-    store.set(KEY_ME, me); toast('Your details are saved');
+    me = {name:$('mName').value.trim(), role:$('mRole').value.trim(), contact:$('mContact').value.trim(), prefix:$('mPrefix').value.trim()||'R-', rate:$('mRate').value, desc:$('mDesc').value.trim(), updated: Date.now()};
+    store.set(KEY_ME, me); toast('Your details are saved'); sync('Update my details');
     if(!editingId && !$('fClient').value) freshForm(); else render();
     show('New');
   };
+
+  // ---------- GitHub saving ----------
+  const lastSaved = {};
+  const b64enc = s => { const by = new TextEncoder().encode(s); let bin=''; for(let i=0;i<by.length;i+=0x8000) bin += String.fromCharCode.apply(null, by.subarray(i,i+0x8000)); return btoa(bin); };
+  const b64dec = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g,'')), c=>c.charCodeAt(0)));
+  const FILE = 'receipts.json';
+
+  function setPill(state, text){
+    const p=$('syncPill'); p.className='sync '+(state||''); p.querySelector('span').textContent=text;
+  }
+  function ghMsg(text, kind){ const m=$('ghMsg'); m.textContent=text; m.className='msg '+(kind||''); m.classList.toggle('hidden', !text); }
+  async function ghFetch(method, body){
+    const url = `https://api.github.com/repos/${encodeURIComponent(gh.owner)}/${encodeURIComponent(gh.repo)}/contents/${FILE}`;
+    return fetch(url, {method, cache:'no-store', headers:{'Accept':'application/vnd.github+json','Authorization':'Bearer '+gh.token,'X-GitHub-Api-Version':'2022-11-28', ...(body?{'Content-Type':'application/json'}:{})}, body: body?JSON.stringify(body):undefined});
+  }
+  function ghError(res){
+    const s = res.status;
+    if(s===401) return 'GitHub says the key is wrong or has expired. Make a new key and paste it again.';
+    if(s===403) return 'The key can’t write to that repo. Set “Contents” to “Read and write” when making the key.';
+    if(s===404) return `Can’t find ${gh.owner}/${gh.repo}. Check the username and repo name, and that the key was given access to that repo.`;
+    return 'GitHub problem (code '+s+'). Try again in a minute.';
+  }
+  function stamp(x){ return x.updated || x.created || 0; }
+  function merge(remote){
+    const dead = new Set([...(tomb||[]), ...(remote.deleted||[])]);
+    const map = new Map();
+    [...(remote.receipts||[]), ...receipts].forEach(r=>{
+      if(!r || !r.id || dead.has(r.id)) return;
+      const ex = map.get(r.id);
+      if(!ex || stamp(r) >= stamp(ex)) map.set(r.id, r);
+    });
+    receipts = [...map.values()].sort((a,b)=>(b.date||'').localeCompare(a.date||'') || (b.created||0)-(a.created||0));
+    tomb = [...dead];
+    if(remote.me && remote.me.name && (!me.name || (remote.me.updated||0) > (me.updated||0))){ me = remote.me; loadMe(); }
+    store.set(KEY_R, receipts); store.set(KEY_T, tomb); store.set(KEY_ME, me);
+  }
+
+  let syncing = null, pendingMsg = null;
+  function sync(message){
+    if(!gh.token){ setPill('', 'GitHub: not connected'); return Promise.resolve(false); }
+    if(syncing){ pendingMsg = message || pendingMsg || 'Update receipts'; return syncing; }
+    setPill('busy', 'Saving to GitHub…');
+    syncing = (async ()=>{
+      for(let attempt=0; attempt<3; attempt++){
+        let sha = null, remoteText = '', remote = {};
+        let g;
+        try{ g = await ghFetch('GET'); }
+        catch(e){ throw new Error('Can’t reach GitHub from here. Check your internet, or open the app from your GitHub link.'); }
+        if(g.status===200){ const j = await g.json(); sha = j.sha; remoteText = b64dec(j.content||''); try{ remote = JSON.parse(remoteText||'{}'); }catch(e){ remote = {}; } }
+        else if(g.status!==404) throw new Error(ghError(g));
+        merge(remote);
+        const text = JSON.stringify({app:'coaching-receipt-maker', version:1, me, receipts, deleted:tomb}, null, 2) + '\n';
+        if(text === remoteText) return true;
+        const p = await ghFetch('PUT', {message: message || 'Sync receipts', content: b64enc(text), ...(sha?{sha}:{})});
+        if(p.ok) return true;
+        if(p.status===409 || (p.status===422 && sha)) continue; // changed elsewhere meanwhile: re-read and retry
+        throw new Error(ghError(p));
+      }
+      throw new Error('GitHub was busy. Try again.');
+    })().then(()=>{
+      setPill('ok', 'Saved to GitHub'); ghMsg('');
+      renderHist();
+      if(!editingId && !$('fClient').value) $('fNo').value = nextNo(), render();
+      return true;
+    }).catch(e=>{
+      setPill('err', 'GitHub: not saved — tap'); ghMsg(e.message, 'err'); return false;
+    }).finally(()=>{
+      syncing = null;
+      if(pendingMsg){ const m = pendingMsg; pendingMsg = null; sync(m); }
+    });
+    return syncing;
+  }
+  function loadGh(){ $('gOwner').value = gh.owner||''; $('gRepo').value = gh.repo||''; $('gToken').value = gh.token||''; }
+  $('btnGhConnect').onclick = async ()=>{
+    gh = {owner:$('gOwner').value.trim()||'SS925', repo:$('gRepo').value.trim()||'coaching-receipts-data', token:$('gToken').value.trim()};
+    if(!gh.token){ ghMsg('Paste your GitHub key first.', 'err'); return; }
+    store.set(KEY_GH, gh);
+    ghMsg('Connecting…');
+    const ok = await sync('Connect receipt app');
+    if(ok) ghMsg(`Connected. ${receipts.length} receipt${receipts.length===1?'':'s'} saved in ${gh.owner}/${gh.repo}.`, 'ok');
+  };
+  $('btnGhOff').onclick = ()=>{ gh = {...gh, token:''}; store.set(KEY_GH, gh); loadGh(); setPill('', 'GitHub: not connected'); ghMsg('This device is disconnected. Your receipts on GitHub are untouched.'); };
+  $('syncPill').onclick = ()=>{ if(gh.token && !$('syncPill').classList.contains('err')) sync('Sync receipts'); else show('Me'); };
 
   // ---------- Tabs ----------
   function show(v){
@@ -472,8 +597,9 @@
   $('btnCopy').onclick=copyText;
   $('btnClear').onclick=freshForm;
 
-  loadMe(); freshForm(); renderHist();
+  loadMe(); loadGh(); freshForm(); renderHist();
   if(!me.name) show('Me');
+  if(gh.token) sync('Sync receipts');
 })();
 </script>
 </body>
