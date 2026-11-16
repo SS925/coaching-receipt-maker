@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Coaching Receipt Maker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
@@ -49,34 +49,53 @@
   .hint{color:var(--muted);font-size:12px;margin-top:6px}
   .sticky{position:sticky;top:12px}
   /* Receipt */
-  #receipt{background:#fff;color:#111;padding:0 0 30px;border:1px solid #d6d3cc;border-radius:6px;font-size:14px;line-height:1.45;overflow:hidden}
-  #receipt > *:not(.r-top){margin-left:34px;margin-right:34px}
-  .r-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;background:#1f5a4b;color:#fff;padding:26px 34px 22px}
-  .r-title{font-size:30px;font-weight:700;letter-spacing:.08em;color:#fff}
-  .r-from{font-weight:700;font-size:17px;color:#fff}
-  .r-top .r-sub{color:#d5e6df}
-  .r-sub{color:#444;font-size:13px;white-space:pre-line}
-  .r-meta{text-align:right;font-size:14px;color:#fff;font-weight:600}
-  .r-meta b{display:inline-block;min-width:84px;color:#bfd8ce;font-weight:500}
-  .r-to{margin-top:22px;margin-bottom:6px}
-  .r-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#1f5a4b;font-weight:700}
-  .r-table{width:calc(100% - 68px);border-collapse:collapse;margin-top:16px}
-  .r-table th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#1f5a4b;text-align:left;background:#e3efe9;padding:9px 8px;font-weight:700}
-  .r-table td{padding:11px 8px;border-bottom:1px solid #dcd9d2;vertical-align:top;color:#111;font-weight:500}
+  #receipt{--rc:#14284b;--rc2:#c19a49;--rcsoft:#eef1f7;--rcink:#0d1b33;position:relative;background:#fff;color:#151515;padding:0 0 26px;border:1px solid #d6d3cc;border-radius:4px;font-size:14px;line-height:1.45;overflow:hidden}
+  #receipt.t-black{--rc:#1a1a1a;--rc2:#c9a24b;--rcsoft:#f2f2f0;--rcink:#111}
+  #receipt.t-maroon{--rc:#5e1626;--rc2:#c9a24b;--rcsoft:#f7eef0;--rcink:#3a0d17}
+  #receipt.t-green{--rc:#1f5a4b;--rc2:#c9a24b;--rcsoft:#eaf3ef;--rcink:#123a30}
+  #receipt.t-blue{--rc:#1d4ed8;--rc2:#93c5fd;--rcsoft:#eef3ff;--rcink:#13307f}
+  #receipt::after{content:"";position:absolute;inset:7px;border:1px solid var(--rc2);border-radius:2px;pointer-events:none}
+  #receipt > *:not(.r-top):not(.r-mark){margin-left:38px;margin-right:38px;position:relative}
+  .r-mark{position:absolute;left:50%;top:56%;transform:translate(-50%,-50%) rotate(-24deg);font-family:"Playfair Display",serif;font-weight:700;font-size:130px;letter-spacing:.1em;color:var(--rc);opacity:.045;pointer-events:none;white-space:nowrap}
+  .r-top{display:flex;justify-content:space-between;align-items:center;gap:16px;background:var(--rc);color:#fff;padding:30px 38px 26px;border-bottom:5px solid var(--rc2)}
+  .r-brand{display:flex;align-items:center;gap:16px}
+  .r-mono{width:58px;height:58px;border-radius:50%;border:2px solid var(--rc2);display:flex;align-items:center;justify-content:center;font-family:"Playfair Display",serif;font-size:23px;font-weight:700;color:var(--rc2);flex:none;letter-spacing:.02em}
+  .r-from{font-family:"Playfair Display",serif;font-weight:700;font-size:22px;color:#fff;line-height:1.15}
+  .r-top .r-sub{color:rgba(255,255,255,.78);font-size:12.5px}
+  .r-sub{color:#4a4a4a;font-size:13px;white-space:pre-line}
+  .r-titlebox{text-align:right}
+  .r-title{font-family:"Playfair Display",serif;font-size:30px;font-weight:700;letter-spacing:.14em;color:var(--rc2);line-height:1}
+  .r-meta{font-size:13px;color:#fff;margin-top:8px}
+  .r-meta div{white-space:nowrap}
+  .r-meta b{color:rgba(255,255,255,.65);font-weight:500;margin-right:6px}
+  .r-to{margin-top:24px;margin-bottom:4px;display:flex;justify-content:space-between;gap:16px;align-items:flex-end}
+  .r-client{font-family:"Playfair Display",serif;font-weight:700;font-size:19px;color:var(--rcink)}
+  .r-period{text-align:right;font-size:13px;color:#333}
+  .r-period b{display:block;font-size:15px;color:var(--rcink)}
+  .r-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--rc);font-weight:700;margin-bottom:2px}
+  .r-table{width:calc(100% - 76px);border-collapse:collapse;margin-top:18px}
+  .r-table th{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:#fff;text-align:left;background:var(--rc);padding:10px 10px;font-weight:700}
+  .r-table td{padding:13px 10px;border-bottom:1px solid #e2dfd8;vertical-align:top;color:#151515;font-weight:500}
+  .r-table tbody tr:nth-child(even) td{background:var(--rcsoft)}
   .r-table .num{text-align:right;white-space:nowrap}
-  .r-total{display:flex;justify-content:flex-end;margin-top:14px}
-  .r-total div{background:#1f5a4b;color:#fff;padding:11px 18px;border-radius:6px;font-size:16px;font-weight:600}
-  .r-total b{color:#fff;margin-left:14px;font-size:20px}
-  .r-paid{margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:14px;font-weight:600}
+  .r-total{display:flex;justify-content:flex-end;margin-top:0}
+  .r-total div{background:var(--rc);color:#fff;padding:12px 20px;font-size:14px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-bottom:3px solid var(--rc2)}
+  .r-total b{color:var(--rc2);margin-left:18px;font-size:22px;letter-spacing:0;text-transform:none;font-family:"Playfair Display",serif}
+  .r-paid{margin-top:22px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:14px;font-weight:600;color:#151515}
   .r-notes{margin-top:16px;font-size:13px;white-space:pre-line;color:#333}
   .r-foot{margin-top:30px;display:flex;justify-content:space-between;align-items:flex-end;gap:16px}
-  .r-stamp{border:3px solid #1f5a4b;color:#1f5a4b;font-weight:800;font-size:16px;padding:5px 14px;border-radius:4px;transform:rotate(-6deg);letter-spacing:.12em}
-  .r-sign{text-align:center;font-size:13px;color:#444}
-  .r-sign div{border-top:1.5px solid #111;padding-top:5px;min-width:170px;color:#111;font-weight:600}
-  .r-inr{margin-top:14px;border:2px solid #1f5a4b;background:#f2f8f5;border-radius:6px;padding:11px 16px;display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:13px;color:#333}
-  .r-inr .r-big{font-size:15px;font-weight:700;color:#111}
-  .r-inr b{font-size:21px;color:#1f5a4b}
-  .r-words{font-size:12px;color:#333;text-align:right;margin-top:5px;font-weight:500}
+  .r-stamp{border:3px double var(--rc2);color:var(--rc);font-weight:800;font-size:15px;padding:6px 16px;border-radius:50px;transform:rotate(-8deg);letter-spacing:.18em;background:#fff}
+  .r-sign{text-align:center;font-size:12px;color:#555}
+  .r-sign .sig{font-family:"Playfair Display",serif;font-style:italic;font-size:20px;color:var(--rcink);padding:0 10px 2px}
+  .r-sign .line{border-top:1.5px solid var(--rc);padding-top:5px;min-width:180px;color:#151515;font-weight:600;font-size:12.5px}
+  .r-thanks{text-align:center;margin-top:22px;font-family:"Playfair Display",serif;font-style:italic;color:var(--rc);font-size:14px}
+  .r-inr{margin-top:16px;border:1.5px solid var(--rc2);background:var(--rcsoft);padding:12px 18px;display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:12.5px;color:#333;border-left:6px solid var(--rc)}
+  .r-inr .r-big{font-size:14px;font-weight:700;color:var(--rcink);text-transform:uppercase;letter-spacing:.06em}
+  .r-inr b{font-size:23px;color:var(--rc);font-family:"Playfair Display",serif}
+  .r-words{font-size:12px;color:#333;text-align:right;margin-top:6px;font-style:italic}
+  .themes{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .themes button{width:38px;height:38px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer}
+  .themes button.on{box-shadow:0 0 0 2px var(--ink)}
   /* History */
   .hist-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
   .hist-top input{max-width:320px}
@@ -225,6 +244,14 @@
       </div>
       <label>Usually paid via</label><select id="mMethod"><option>Remitly</option><option>UPI</option><option>Cash</option><option>Bank transfer</option><option>Card</option><option>PayPal</option><option>Other</option></select>
       <label>Description on receipt</label><input id="mDesc" placeholder="Monthly coaching (Mon–Fri)">
+      <label>Receipt colour</label>
+      <div class="themes" id="mTheme">
+        <button data-t="navy" title="Navy & gold" style="background:linear-gradient(135deg,#14284b 60%,#c19a49 60%)"></button>
+        <button data-t="black" title="Black & gold" style="background:linear-gradient(135deg,#1a1a1a 60%,#c9a24b 60%)"></button>
+        <button data-t="maroon" title="Maroon & gold" style="background:linear-gradient(135deg,#5e1626 60%,#c9a24b 60%)"></button>
+        <button data-t="green" title="Green & gold" style="background:linear-gradient(135deg,#1f5a4b 60%,#c9a24b 60%)"></button>
+        <button data-t="blue" title="Bright blue" style="background:linear-gradient(135deg,#1d4ed8 60%,#93c5fd 60%)"></button>
+      </div>
       <div class="actions"><button class="btn primary" id="btnMeSave">Save my details</button></div>
       <div class="hint">No business name needed — just your own name.</div>
     </div>
@@ -368,24 +395,34 @@
     const rows = r.items.length ? r.items.map(i=>`<tr><td>${esc(i.desc)||'—'}</td><td class="num">${i.qty}</td><td class="num">${money(r.cur,i.rate)}</td><td class="num">${money(r.cur,i.qty*i.rate)}</td></tr>`).join('')
       : `<tr><td colspan="4" style="color:#aaa">Add what the client paid for</td></tr>`;
     const discRow = r.disc ? `<tr><td colspan="3" class="num" style="color:#6b6b70">Discount</td><td class="num">− ${money(r.cur,r.disc)}</td></tr>` : '';
+    const initials = (me.name||'').trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('') || '✦';
+    $('receipt').className = 't-'+(me.theme||'navy');
     $('receipt').innerHTML = `
+      <div class="r-mark">PAID</div>
       <div class="r-top">
-        <div>
-          <div class="r-title">RECEIPT</div>
-          <div class="r-from" style="margin-top:8px">${esc(me.name)||'<span style="color:#bbb">Your name</span>'}</div>
-          ${me.role?`<div class="r-sub">${esc(me.role)}</div>`:''}
-          ${me.contact?`<div class="r-sub">${esc(me.contact)}</div>`:''}
+        <div class="r-brand">
+          <div class="r-mono">${esc(initials)}</div>
+          <div>
+            <div class="r-from">${esc(me.name)||'<span style="opacity:.5">Your name</span>'}</div>
+            ${me.role?`<div class="r-sub">${esc(me.role)}</div>`:''}
+            ${me.contact?`<div class="r-sub">${esc(me.contact)}</div>`:''}
+          </div>
         </div>
-        <div class="r-meta">
-          <div><b>Receipt no.</b> ${esc(r.no)}</div>
-          <div><b>Date</b> ${fmtDate(r.date)}</div>
+        <div class="r-titlebox">
+          <div class="r-title">RECEIPT</div>
+          <div class="r-meta">
+            <div><b>No.</b>${esc(r.no)}</div>
+            <div><b>Date</b>${fmtDate(r.date)}</div>
+          </div>
         </div>
       </div>
       <div class="r-to">
-        <div class="r-label">Received from</div>
-        <div style="font-weight:600;font-size:15px">${esc(r.client)||'<span style="color:#bbb">Client name</span>'}</div>
-        ${r.clientContact?`<div class="r-sub">${esc(r.clientContact)}</div>`:''}
-        ${r.month?`<div class="r-sub" style="margin-top:4px">Coaching period: ${monthName(r.month)} · Monday to Friday</div>`:''}
+        <div>
+          <div class="r-label">Received from</div>
+          <div class="r-client">${esc(r.client)||'<span style="color:#bbb">Client name</span>'}</div>
+          ${r.clientContact?`<div class="r-sub">${esc(r.clientContact)}</div>`:''}
+        </div>
+        ${r.month?`<div class="r-period"><div class="r-label">Coaching period</div><b>${monthName(r.month)}</b>Monday to Friday · ${weekdays(r.month)} days</div>`:''}
       </div>
       <table class="r-table">
         <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead>
@@ -402,8 +439,9 @@
       ${r.notes?`<div class="r-notes">${esc(r.notes)}</div>`:''}
       <div class="r-foot">
         <div class="r-stamp">PAID</div>
-        <div class="r-sign"><div>${esc(me.name)||'&nbsp;'}</div></div>
-      </div>`;
+        <div class="r-sign"><div class="sig">${esc(me.name)||'&nbsp;'}</div><div class="line">${esc(me.name)||'&nbsp;'}${me.role?' · '+esc(me.role):''}</div></div>
+      </div>
+      <div class="r-thanks">Thank you for your trust.</div>`;
   }
 
   // ---------- Save / PDF / copy ----------
@@ -532,9 +570,12 @@
   };
 
   // ---------- My details ----------
-  function loadMe(){ $('mName').value=me.name||''; $('mRole').value=me.role||''; $('mContact').value=me.contact||''; $('mPrefix').value=me.prefix||'R-'; $('mRate').value=me.rate||''; $('mDesc').value=me.desc||''; $('mCur').value=me.cur||DEF.cur; $('mMethod').value=me.method||DEF.method; }
+  function loadMe(){ $('mName').value=me.name||''; $('mRole').value=me.role||''; $('mContact').value=me.contact||''; $('mPrefix').value=me.prefix||'R-'; $('mRate').value=me.rate||''; $('mDesc').value=me.desc||''; $('mCur').value=me.cur||DEF.cur; $('mMethod').value=me.method||DEF.method; pickTheme(me.theme||'navy'); }
+  let themeSel='navy';
+  function pickTheme(t){ themeSel=t; document.querySelectorAll('#mTheme button').forEach(b=>b.classList.toggle('on', b.dataset.t===t)); }
+  document.querySelectorAll('#mTheme button').forEach(b=>b.onclick=()=>{ pickTheme(b.dataset.t); me = {...me, theme:b.dataset.t}; render(); });
   $('btnMeSave').onclick = ()=>{
-    me = {name:$('mName').value.trim(), role:$('mRole').value.trim(), contact:$('mContact').value.trim(), prefix:$('mPrefix').value.trim()||'R-', rate:$('mRate').value, desc:$('mDesc').value.trim(), cur:$('mCur').value, method:$('mMethod').value, updated: Date.now()};
+    me = {name:$('mName').value.trim(), role:$('mRole').value.trim(), contact:$('mContact').value.trim(), prefix:$('mPrefix').value.trim()||'R-', rate:$('mRate').value, desc:$('mDesc').value.trim(), cur:$('mCur').value, method:$('mMethod').value, theme: themeSel, updated: Date.now()};
     store.set(KEY_ME, me); toast('Your details are saved'); sync('Update my details');
     if(!editingId && !$('fClient').value) freshForm(); else render();
     show('New');
