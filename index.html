@@ -71,6 +71,8 @@
   .r-stamp{border:2px solid var(--accent);color:var(--accent);font-weight:700;padding:4px 12px;border-radius:4px;transform:rotate(-6deg);letter-spacing:.1em}
   .r-sign{text-align:center;font-size:13px;color:#6b6b70}
   .r-sign div{border-top:1px solid #ccc;padding-top:4px;min-width:160px;color:#1d1d1f;font-weight:500}
+  .r-inr{margin-top:14px;border:1px dashed #cfd9d4;border-radius:6px;padding:10px 14px;display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:13px;color:#6b6b70}
+  .r-inr b{font-size:17px;color:#1d1d1f}
   .r-words{font-size:12px;color:#6b6b70;text-align:right;margin-top:4px}
   /* History */
   .hist-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
@@ -129,6 +131,8 @@
           <div><label>Receipt no.</label><input id="fNo"></div>
           <div><label>Date</label><input id="fDate" type="date"></div>
         </div>
+        <label>Coaching month</label><input id="fMonth" type="month">
+        <div class="hint" id="monthHint"></div>
         <label>Client name</label><input id="fClient" placeholder="e.g. Priya Sharma">
         <label>Client phone / email (optional)</label><input id="fClientContact" placeholder="optional">
       </div>
@@ -136,7 +140,7 @@
       <div class="card">
         <h2>What they paid for</h2>
         <table class="items">
-          <thead><tr><th>Description</th><th>Sessions</th><th>Rate</th><th></th></tr></thead>
+          <thead><tr><th>Description</th><th>Qty</th><th>Amount</th><th></th></tr></thead>
           <tbody id="itemRows"></tbody>
         </table>
         <div class="actions" style="margin-top:8px"><button class="btn small" id="addItem">+ Add line</button></div>
@@ -152,9 +156,16 @@
         <h2>Payment</h2>
         <div class="row">
           <div><label>Paid via</label>
-            <select id="fMethod"><option>UPI</option><option>Cash</option><option>Bank transfer</option><option>Card</option><option>PayPal</option><option>Other</option></select>
+            <select id="fMethod"><option>Remitly</option><option>UPI</option><option>Cash</option><option>Bank transfer</option><option>Card</option><option>PayPal</option><option>Other</option></select>
           </div>
           <div><label>Transaction ID (optional)</label><input id="fTxn" placeholder="optional"></div>
+        </div>
+        <div id="fxBox">
+          <div class="row">
+            <div><label id="fxLabel">Rate that day (₹ per $1)</label><input id="fFx" type="number" min="0" step="any" placeholder="e.g. 84.25"></div>
+            <div><label>Rupees credited (₹)</label><input id="fInr" type="number" min="0" step="any" placeholder="from Remitly"></div>
+          </div>
+          <div class="hint">Type either one from your Remitly receipt and the other fills in by itself.</div>
         </div>
         <label>Note (optional)</label><textarea id="fNotes" placeholder="e.g. Thank you! Next session on Monday."></textarea>
         <div class="actions">
@@ -177,8 +188,8 @@
   <section id="viewHist" class="hidden">
     <div class="stats">
       <div class="stat"><span>Receipts</span><b id="sCount">0</b></div>
-      <div class="stat"><span>This month</span><b id="sMonth">0</b></div>
-      <div class="stat"><span>All time</span><b id="sAll">0</b></div>
+      <div class="stat"><span>Received this month (₹)</span><b id="sMonth">0</b></div>
+      <div class="stat"><span>Received all time (₹)</span><b id="sAll">0</b></div>
     </div>
     <div class="card">
       <div class="hist-top">
@@ -189,7 +200,7 @@
       </div>
       <div style="overflow-x:auto">
         <table class="hist">
-          <thead><tr><th>No.</th><th>Date</th><th>Client</th><th style="text-align:right">Amount</th><th></th></tr></thead>
+          <thead><tr><th>No.</th><th>Month</th><th>Client</th><th style="text-align:right">Amount</th><th></th></tr></thead>
           <tbody id="histRows"></tbody>
         </table>
       </div>
@@ -205,8 +216,12 @@
       <label>What you do (optional)</label><input id="mRole" placeholder="e.g. Fitness Coach, Career Coaching">
       <label>Phone / email / UPI ID (optional)</label><textarea id="mContact" placeholder="One per line"></textarea>
       <label>Receipt number starts with</label><input id="mPrefix" placeholder="R-">
-      <label>Default rate per session (optional)</label><input id="mRate" type="number" min="0" step="any">
-      <label>Default description (optional)</label><input id="mDesc" placeholder="e.g. 1:1 coaching session">
+      <div class="row">
+        <div><label>Monthly fee</label><input id="mRate" type="number" min="0" step="any" placeholder="750"></div>
+        <div><label>Paid in</label><select id="mCur"><option value="$">$ USD</option><option value="₹">₹ INR</option><option value="€">€ EUR</option><option value="£">£ GBP</option></select></div>
+      </div>
+      <label>Usually paid via</label><select id="mMethod"><option>Remitly</option><option>UPI</option><option>Cash</option><option>Bank transfer</option><option>Card</option><option>PayPal</option><option>Other</option></select>
+      <label>Description on receipt</label><input id="mDesc" placeholder="Monthly coaching (Mon–Fri)">
       <div class="actions"><button class="btn primary" id="btnMeSave">Save my details</button></div>
       <div class="hint">No business name needed — just your own name.</div>
     </div>
@@ -283,14 +298,29 @@
     return p + String(max+1).padStart(3,'0');
   }
 
+  // ---------- Monthly coaching helpers ----------
+  const DEF = {rate:750, cur:'$', method:'Remitly', desc:'Monthly coaching (Mon–Fri)'};
+  const thisMonth = () => today().slice(0,7);
+  function monthName(ym){ if(!ym) return ''; const [y,m]=ym.split('-').map(Number); return new Date(y,m-1,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'}); }
+  function weekdays(ym){ if(!ym) return 0; const [y,m]=ym.split('-').map(Number); let n=0; const d=new Date(y,m-1,1); while(d.getMonth()===m-1){ const w=d.getDay(); if(w>0&&w<6) n++; d.setDate(d.getDate()+1); } return n; }
+  function monthDesc(ym){ return `${me.desc||DEF.desc} — ${monthName(ym)} (${weekdays(ym)} days)`; }
+  function nextMonth(ym){ const [y,m]=(ym||thisMonth()).split('-').map(Number); const d=new Date(y,m,1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+  const inrOf = r => r.cur==='₹' ? (r.total||0) : (Number(r.inr)||0);
+  const round = (n,d) => Math.round(n*10**d)/10**d;
+  function fxFrom(which){
+    const total = readForm().total;
+    if(which==='fx'){ const fx=parseFloat($('fFx').value); $('fInr').value = (fx && total) ? round(fx*total,2) : ''; }
+    else { const inr=parseFloat($('fInr').value); $('fFx').value = (inr && total) ? round(inr/total,4) : ''; }
+  }
+
   // ---------- Items ----------
   function addRow(it){
-    it = it || {desc: me.desc||'', qty:1, rate: me.rate||''};
+    it = it || {desc: me.desc||DEF.desc, qty:1, rate: me.rate||DEF.rate};
     const tr=document.createElement('tr');
     tr.innerHTML = `<td><input class="iDesc" placeholder="e.g. Coaching session"></td><td><input class="iQty" type="number" min="0" step="any"></td><td><input class="iRate" type="number" min="0" step="any"></td><td><button class="x" title="Remove">×</button></td>`;
     tr.querySelector('.iDesc').value = it.desc; tr.querySelector('.iQty').value = it.qty; tr.querySelector('.iRate').value = it.rate;
     tr.querySelector('.x').onclick = ()=>{ tr.remove(); if(!$('itemRows').children.length) addRow(); render(); };
-    tr.querySelectorAll('input').forEach(i=>i.addEventListener('input', render));
+    tr.querySelectorAll('input').forEach(i=>i.addEventListener('input', ()=>{ if($('fFx').value) fxFrom('fx'); render(); }));
     $('itemRows').appendChild(tr);
   }
   function readItems(){
@@ -308,24 +338,30 @@
     return {
       no: $('fNo').value.trim(), date: $('fDate').value, client: $('fClient').value.trim(),
       clientContact: $('fClientContact').value.trim(), items, cur: $('fCur').value, disc,
-      total: Math.max(0, sub-disc), sub, method: $('fMethod').value, txn: $('fTxn').value.trim(), notes: $('fNotes').value.trim()
+      total: Math.max(0, sub-disc), sub, method: $('fMethod').value, txn: $('fTxn').value.trim(), notes: $('fNotes').value.trim(),
+      month: $('fMonth').value, fx: $('fCur').value==='₹' ? 0 : (parseFloat($('fFx').value)||0), inr: $('fCur').value==='₹' ? 0 : (parseFloat($('fInr').value)||0)
     };
   }
   function fillForm(r){
     $('fNo').value=r.no; $('fDate').value=r.date; $('fClient').value=r.client; $('fClientContact').value=r.clientContact||'';
-    $('fCur').value=r.cur||'₹'; $('fDisc').value=r.disc||''; $('fMethod').value=r.method||'UPI'; $('fTxn').value=r.txn||''; $('fNotes').value=r.notes||'';
+    $('fCur').value=r.cur||DEF.cur; $('fDisc').value=r.disc||''; $('fMethod').value=r.method||DEF.method; $('fTxn').value=r.txn||''; $('fNotes').value=r.notes||'';
+    $('fMonth').value=r.month||''; $('fFx').value=r.fx||''; $('fInr').value=r.inr||'';
     $('itemRows').innerHTML=''; (r.items.length?r.items:[null]).forEach(addRow);
     render();
   }
   function freshForm(){
     editingId=null;
-    fillForm({no:nextNo(), date:today(), client:'', clientContact:'', items:[], cur: (receipts[0]&&receipts[0].cur)||'₹', disc:'', method:'UPI', txn:'', notes:''});
+    const m = thisMonth();
+    fillForm({no:nextNo(), date:today(), month:m, client:'', clientContact:'', items:[{desc:monthDesc(m), qty:1, rate:me.rate||DEF.rate}], cur: me.cur||DEF.cur, disc:'', method: me.method||DEF.method, txn:'', notes:'', fx:'', inr:''});
     $('editHint').textContent='';
   }
 
   // ---------- Receipt preview ----------
   function render(){
     const r = readForm();
+    $('monthHint').textContent = r.month ? `${monthName(r.month)}: ${weekdays(r.month)} coaching days (Mon–Fri)` : '';
+    $('fxBox').classList.toggle('hidden', r.cur==='₹');
+    $('fxLabel').textContent = `Rate that day (₹ per ${r.cur}1)`;
     const rows = r.items.length ? r.items.map(i=>`<tr><td>${esc(i.desc)||'—'}</td><td class="num">${i.qty}</td><td class="num">${money(r.cur,i.rate)}</td><td class="num">${money(r.cur,i.qty*i.rate)}</td></tr>`).join('')
       : `<tr><td colspan="4" style="color:#aaa">Add what the client paid for</td></tr>`;
     const discRow = r.disc ? `<tr><td colspan="3" class="num" style="color:#6b6b70">Discount</td><td class="num">− ${money(r.cur,r.disc)}</td></tr>` : '';
@@ -346,13 +382,16 @@
         <div class="r-label">Received from</div>
         <div style="font-weight:600;font-size:15px">${esc(r.client)||'<span style="color:#bbb">Client name</span>'}</div>
         ${r.clientContact?`<div class="r-sub">${esc(r.clientContact)}</div>`:''}
+        ${r.month?`<div class="r-sub" style="margin-top:4px">Coaching period: ${monthName(r.month)} · Monday to Friday</div>`:''}
       </div>
       <table class="r-table">
-        <thead><tr><th>Description</th><th class="num">Sessions</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead>
+        <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead>
         <tbody>${rows}${discRow}</tbody>
       </table>
       <div class="r-total"><div>Total paid <b>${money(r.cur,r.total)}</b></div></div>
       ${r.cur==='₹' && r.total ? `<div class="r-words">Rupees ${words(r.total)} only</div>`:''}
+      ${r.cur!=='₹' && r.inr ? `<div class="r-inr"><div>Credited in India${r.fx?`<br>at ₹${r.fx} per ${r.cur}1 on ${fmtDate(r.date)}`:''}${r.method?` · via ${esc(r.method)}`:''}</div><b>${money('₹', r.inr)}</b></div>
+      <div class="r-words">Rupees ${words(r.inr)} only</div>`:''}
       <div class="r-paid">
         <div><div class="r-label">Paid via</div>${esc(r.method)}</div>
         ${r.txn?`<div><div class="r-label">Transaction ID</div>${esc(r.txn)}</div>`:''}
@@ -388,7 +427,7 @@
     $('editHint').textContent = 'Saved as '+r.no+'. Changes you make now update this receipt.';
     if(!silent) toast(gh.token ? 'Receipt saved — sending to GitHub' : (ok ? 'Receipt saved' : 'Saved for now (this browser can’t keep it after closing)'));
     renderHist();
-    if(changed) sync(`Receipt ${r.no} – ${r.client} – ${money(r.cur,r.total)}`);
+    if(changed) sync(`Receipt ${r.no} – ${r.client}${r.month?' – '+monthName(r.month):''} – ${money(r.cur,r.total)}${r.inr&&r.cur!=='₹'?' (₹'+r.inr+')':''}`);
     return r;
   }
 
@@ -418,10 +457,11 @@
     }catch(e){ toast('Something went wrong making the PDF'); }
   }
   function asText(r){
-    const lines = [`RECEIPT ${r.no}`, `Date: ${fmtDate(r.date)}`, `From: ${me.name}`, `Received from: ${r.client}`, ''];
+    const lines = [`RECEIPT ${r.no}`, `Date: ${fmtDate(r.date)}`, ...(r.month?[`Coaching period: ${monthName(r.month)} (Mon–Fri)`]:[]), `From: ${me.name}`, `Received from: ${r.client}`, ''];
     r.items.forEach(i=>lines.push(`${i.desc} — ${i.qty} × ${money(r.cur,i.rate)} = ${money(r.cur,i.qty*i.rate)}`));
     if(r.disc) lines.push(`Discount: − ${money(r.cur,r.disc)}`);
     lines.push('', `Total paid: ${money(r.cur,r.total)}`, `Paid via: ${r.method}${r.txn?' (Txn: '+r.txn+')':''}`);
+    if(r.cur!=='₹' && r.inr) lines.push(`Credited in India: ${money('₹',r.inr)}${r.fx?' (at ₹'+r.fx+' per '+r.cur+'1)':''}`);
     if(r.notes) lines.push('', r.notes);
     return lines.join('\n');
   }
@@ -437,26 +477,25 @@
     const list = receipts.filter(r=> !q || [r.no,r.client,r.clientContact,...r.items.map(i=>i.desc)].join(' ').toLowerCase().includes(q));
     $('histRows').innerHTML = list.length ? list.map(r=>`
       <tr>
-        <td>${esc(r.no)}</td><td>${fmtDate(r.date)}</td><td>${esc(r.client)}</td><td class="num">${money(r.cur,r.total)}</td>
+        <td>${esc(r.no)}</td><td>${r.month?monthName(r.month):fmtDate(r.date)}</td><td>${esc(r.client)}</td><td class="num">${money(r.cur,r.total)}${r.cur!=='₹'&&r.inr?`<br><span style="color:var(--muted);font-size:13px">${money('₹',r.inr)}</span>`:''}</td>
         <td><div class="ops">
           <button class="btn small" data-op="open" data-id="${r.id}">Open</button>
           <button class="btn small" data-op="dup" data-id="${r.id}">Repeat for client</button>
           <button class="btn small" data-op="del" data-id="${r.id}">Delete</button>
         </div></td>
       </tr>`).join('') : `<tr><td colspan="5" class="empty">${receipts.length?'No match':'No receipts yet — make your first one in “New receipt”.'}</td></tr>`;
-    // stats (main currency only)
-    const cur = (receipts[0]&&receipts[0].cur)||'₹';
-    const same = receipts.filter(r=>r.cur===cur);
-    const ym = today().slice(0,7);
+    // stats in rupees actually received
+    const ym = thisMonth();
     $('sCount').textContent = receipts.length;
-    $('sMonth').textContent = money(cur, same.filter(r=>(r.date||'').startsWith(ym)).reduce((s,r)=>s+r.total,0));
-    $('sAll').textContent = money(cur, same.reduce((s,r)=>s+r.total,0));
+    $('sMonth').textContent = money('₹', round(receipts.filter(r=>(r.month||(r.date||'').slice(0,7))===ym).reduce((s,r)=>s+inrOf(r),0),2));
+    $('sAll').textContent = money('₹', round(receipts.reduce((s,r)=>s+inrOf(r),0),2));
   }
   $('histRows').addEventListener('click', e=>{
     const b = e.target.closest('button'); if(!b) return;
     const r = receipts.find(x=>x.id===b.dataset.id); if(!r) return;
     if(b.dataset.op==='open'){ editingId=r.id; fillForm(r); $('editHint').textContent='Opened '+r.no+'. Download the PDF again or edit and save.'; show('New'); }
-    if(b.dataset.op==='dup'){ editingId=null; fillForm({...r, no:nextNo(), date:today(), txn:''}); $('editHint').textContent='New receipt for '+r.client+' — check the details and save.'; show('New'); }
+    if(b.dataset.op==='dup'){ editingId=null; const nm = nextMonth(r.month); const items = (r.items.length===1 && r.month) ? [{...r.items[0], desc: monthDesc(nm)}] : r.items;
+      fillForm({...r, items, month: r.month?nm:'', no:nextNo(), date:today(), txn:'', fx:'', inr:''}); $('editHint').textContent='Next month for '+r.client+' — add the Remitly rate or rupees credited, then save.'; show('New'); }
     if(b.dataset.op==='del'){ confirmBox(`Delete receipt ${r.no} for ${r.client}?`, ()=>{ receipts=receipts.filter(x=>x.id!==r.id); tomb.push(r.id); store.set(KEY_T,tomb); store.set(KEY_R,receipts); if(editingId===r.id) freshForm(); renderHist(); toast('Deleted'); sync(`Delete receipt ${r.no} – ${r.client}`); }); }
   });
   $('search').addEventListener('input', renderHist);
@@ -490,9 +529,9 @@
   };
 
   // ---------- My details ----------
-  function loadMe(){ $('mName').value=me.name||''; $('mRole').value=me.role||''; $('mContact').value=me.contact||''; $('mPrefix').value=me.prefix||'R-'; $('mRate').value=me.rate||''; $('mDesc').value=me.desc||''; }
+  function loadMe(){ $('mName').value=me.name||''; $('mRole').value=me.role||''; $('mContact').value=me.contact||''; $('mPrefix').value=me.prefix||'R-'; $('mRate').value=me.rate||''; $('mDesc').value=me.desc||''; $('mCur').value=me.cur||DEF.cur; $('mMethod').value=me.method||DEF.method; }
   $('btnMeSave').onclick = ()=>{
-    me = {name:$('mName').value.trim(), role:$('mRole').value.trim(), contact:$('mContact').value.trim(), prefix:$('mPrefix').value.trim()||'R-', rate:$('mRate').value, desc:$('mDesc').value.trim(), updated: Date.now()};
+    me = {name:$('mName').value.trim(), role:$('mRole').value.trim(), contact:$('mContact').value.trim(), prefix:$('mPrefix').value.trim()||'R-', rate:$('mRate').value, desc:$('mDesc').value.trim(), cur:$('mCur').value, method:$('mMethod').value, updated: Date.now()};
     store.set(KEY_ME, me); toast('Your details are saved'); sync('Update my details');
     if(!editingId && !$('fClient').value) freshForm(); else render();
     show('New');
@@ -591,6 +630,16 @@
 
   // wire up
   ['fNo','fDate','fClient','fClientContact','fCur','fDisc','fMethod','fTxn','fNotes'].forEach(id=>$(id).addEventListener('input', render));
+  $('fDisc').addEventListener('input', ()=>{ if($('fFx').value){ fxFrom('fx'); render(); } });
+  $('fFx').addEventListener('input', ()=>{ fxFrom('fx'); render(); });
+  $('fInr').addEventListener('input', ()=>{ fxFrom('inr'); render(); });
+  let prevMonth = null;
+  $('fMonth').addEventListener('focus', ()=>{ prevMonth = $('fMonth').value; });
+  $('fMonth').addEventListener('change', ()=>{
+    const first = $('itemRows').querySelector('.iDesc'); const m = $('fMonth').value;
+    if(first && m && (!first.value.trim() || first.value === monthDesc(prevMonth||'') || first.value.startsWith(me.desc||DEF.desc))) first.value = monthDesc(m);
+    prevMonth = m; render();
+  });
   $('addItem').onclick=()=>{ addRow(); render(); };
   $('btnSave').onclick=()=>saveReceipt();
   $('btnPdf').onclick=downloadPdf;
