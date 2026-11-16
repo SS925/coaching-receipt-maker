@@ -93,6 +93,14 @@
   .r-inr .r-big{font-size:14px;font-weight:700;color:var(--rcink);text-transform:uppercase;letter-spacing:.06em}
   .r-inr b{font-size:23px;color:var(--rc);font-family:"Playfair Display",serif}
   .r-words{font-size:12px;color:#333;text-align:right;margin-top:6px;font-style:italic}
+  .r-logo{width:66px;height:66px;border-radius:10px;background:#fff;padding:6px;display:flex;align-items:center;justify-content:center;border:2px solid var(--rc2);flex:none}
+  .r-logo img{max-width:100%;max-height:100%;display:block}
+  .r-sign .sigimg{display:block;margin:0 auto 2px;max-height:56px;max-width:200px}
+  .imgrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .imgprev{width:120px;height:56px;border:1px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;background:#fff;overflow:hidden}
+  .imgprev img{max-width:100%;max-height:100%}
+  #pad{width:100%;height:190px;border:1.5px dashed #bbb;border-radius:8px;touch-action:none;background:#fff;display:block;cursor:crosshair}
+  .sharebox a{display:block;text-align:center;text-decoration:none;margin-top:8px}
   .themes{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
   .themes button{width:38px;height:38px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer}
   .themes button.on{box-shadow:0 0 0 2px var(--ink)}
@@ -192,6 +200,7 @@
         <label>Note (optional)</label><textarea id="fNotes" placeholder="e.g. Thank you! Next session on Monday."></textarea>
         <div class="actions">
           <button class="btn primary" id="btnSave">Save receipt</button>
+          <button class="btn" id="btnShare">Share PDF</button>
           <button class="btn" id="btnPdf">Download PDF</button>
           <button class="btn" id="btnCopy">Copy as text</button>
           <button class="btn" id="btnClear">Start fresh</button>
@@ -252,6 +261,20 @@
         <button data-t="green" title="Green & gold" style="background:linear-gradient(135deg,#1f5a4b 60%,#c9a24b 60%)"></button>
         <button data-t="blue" title="Bright blue" style="background:linear-gradient(135deg,#1d4ed8 60%,#93c5fd 60%)"></button>
       </div>
+      <label>Logo (optional — replaces your initials)</label>
+      <div class="imgrow">
+        <div class="imgprev" id="logoPrev">No logo</div>
+        <label class="btn small" style="margin:0">Upload<input type="file" id="logoFile" accept="image/*" class="hidden"></label>
+        <button class="btn small" id="logoDel">Remove</button>
+      </div>
+      <label>Signature (optional)</label>
+      <div class="imgrow">
+        <div class="imgprev" id="sigPrev">No signature</div>
+        <button class="btn small" id="sigDraw">Draw</button>
+        <label class="btn small" style="margin:0">Upload photo<input type="file" id="sigFile" accept="image/*" class="hidden"></label>
+        <button class="btn small" id="sigDel">Remove</button>
+      </div>
+      <div class="hint">Photo of your signature on white paper works — the background is cleaned off automatically.</div>
       <div class="actions"><button class="btn primary" id="btnMeSave">Save my details</button></div>
       <div class="hint">No business name needed — just your own name.</div>
     </div>
@@ -282,6 +305,18 @@
 </main>
 
 <div class="modal" id="modal"><div class="box"><p id="modalText"></p><div class="actions" style="justify-content:flex-end;margin:0"><button class="btn" id="modalNo">Cancel</button><button class="btn primary" id="modalYes">Delete</button></div></div></div>
+<div class="modal" id="padModal"><div class="box" style="max-width:560px">
+  <p><b>Draw your signature</b> with your finger or mouse</p>
+  <canvas id="pad"></canvas>
+  <div class="actions" style="justify-content:flex-end"><button class="btn" id="padClear">Clear</button><button class="btn" id="padCancel">Cancel</button><button class="btn primary" id="padUse">Use signature</button></div>
+</div></div>
+<div class="modal" id="shareModal"><div class="box sharebox">
+  <p id="shareText"></p>
+  <button class="btn primary" id="shareNow" style="width:100%">Send PDF</button>
+  <a class="btn" id="shareWa" href="#" target="_blank" rel="noopener">Open WhatsApp with receipt text</a>
+  <a class="btn" id="shareMail" href="#" target="_blank" rel="noopener">Open email with receipt text</a>
+  <button class="btn" id="shareClose" style="width:100%;margin-top:8px">Close</button>
+</div></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -401,7 +436,7 @@
       <div class="r-mark">PAID</div>
       <div class="r-top">
         <div class="r-brand">
-          <div class="r-mono">${esc(initials)}</div>
+          ${me.logo?`<div class="r-logo"><img src="${me.logo}" alt=""></div>`:`<div class="r-mono">${esc(initials)}</div>`}
           <div>
             <div class="r-from">${esc(me.name)||'<span style="opacity:.5">Your name</span>'}</div>
             ${me.role?`<div class="r-sub">${esc(me.role)}</div>`:''}
@@ -439,7 +474,7 @@
       ${r.notes?`<div class="r-notes">${esc(r.notes)}</div>`:''}
       <div class="r-foot">
         <div class="r-stamp">PAID</div>
-        <div class="r-sign"><div class="sig">${esc(me.name)||'&nbsp;'}</div><div class="line">${esc(me.name)||'&nbsp;'}${me.role?' · '+esc(me.role):''}</div></div>
+        <div class="r-sign">${me.sig?`<img class="sigimg" src="${me.sig}" alt="">`:`<div class="sig">${esc(me.name)||'&nbsp;'}</div>`}<div class="line">${esc(me.name)||'&nbsp;'}${me.role?' · '+esc(me.role):''}</div></div>
       </div>
       <div class="r-thanks">Thank you for your trust.</div>`;
   }
@@ -482,21 +517,49 @@
     pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', margin, margin, w, h);
     return pdf.output('blob');
   }
+  function pdfName(r){ return `Receipt ${r.no} - ${r.client}.pdf`.replace(/[\\/:*?"<>|]/g,''); }
+  async function deliver(blob, name){
+    if(downloads){
+      try{ await downloads.save({filename:name, data:blob}); toast('PDF saved'); return true; }
+      catch(e){ if(!(e && e.code==='declined')) toast('Could not save the PDF here'); return false; }
+    }
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 4000); toast('PDF downloaded'); return true;
+  }
   async function downloadPdf(){
     const r = saveReceipt(true); if(!r) return;
     if(!window.html2canvas || !window.jspdf){ toast('PDF tools are still loading, try again in a moment'); return; }
-    const name = `Receipt ${r.no} - ${r.client}.pdf`.replace(/[\\/:*?"<>|]/g,'');
-    try{
-      const blob = await makePdfBlob();
-      if(downloads){
-        try{ await downloads.save({filename:name, data:blob}); toast('PDF saved'); }
-        catch(e){ if(e && e.code==='declined') return; toast('Could not save the PDF here'); }
-      } else {
-        const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(()=>URL.revokeObjectURL(a.href), 4000); toast('PDF downloaded');
-      }
-    }catch(e){ toast('Something went wrong making the PDF'); }
+    try{ await deliver(await makePdfBlob(), pdfName(r)); }
+    catch(e){ toast('Something went wrong making the PDF'); }
   }
+  let shareFile = null;
+  async function shareNow(){
+    try{ await navigator.share({files:[shareFile], title: shareFile.name}); $('shareModal').classList.remove('show'); return 'ok'; }
+    catch(e){ if(e && e.name==='AbortError') return 'cancel'; return e && e.name==='NotAllowedError' ? 'gesture' : 'fail'; }
+  }
+  async function sharePdf(){
+    const r = saveReceipt(true); if(!r) return;
+    if(!window.html2canvas || !window.jspdf){ toast('PDF tools are still loading, try again in a moment'); return; }
+    let blob;
+    try{ toast('Making PDF…'); blob = await makePdfBlob(); }catch(e){ toast('Something went wrong making the PDF'); return; }
+    shareFile = new File([blob], pdfName(r), {type:'application/pdf'});
+    const text = asText(r);
+    $('shareWa').href = 'https://wa.me/?text=' + encodeURIComponent(text);
+    $('shareMail').href = 'mailto:?subject=' + encodeURIComponent(`Receipt ${r.no} – ${monthName(r.month)||fmtDate(r.date)}`) + '&body=' + encodeURIComponent(text);
+    const canShare = !!(navigator.canShare && navigator.canShare({files:[shareFile]}));
+    $('shareNow').classList.toggle('hidden', !canShare);
+    if(canShare){
+      const res = await shareNow();
+      if(res==='ok' || res==='cancel') return;
+      $('shareText').textContent = 'Your PDF is ready. Tap “Send PDF” and pick WhatsApp, Gmail or any app.';
+    } else {
+      await deliver(blob, shareFile.name);
+      $('shareText').textContent = 'The PDF has been saved to your device. Open WhatsApp or email below and attach it — the receipt details are already typed in.';
+    }
+    $('shareModal').classList.add('show');
+  }
+  $('shareNow').onclick = async ()=>{ const res = await shareNow(); if(res==='fail' || res==='gesture'){ await deliver(shareFile, shareFile.name); $('shareNow').classList.add('hidden'); $('shareText').textContent='Sharing isn’t available here, so the PDF was saved instead. Attach it in WhatsApp or email below.'; } };
+  $('shareClose').onclick = ()=>$('shareModal').classList.remove('show');
   function asText(r){
     const lines = [`RECEIPT ${r.no}`, `Date: ${fmtDate(r.date)}`, ...(r.month?[`Coaching period: ${monthName(r.month)} (Mon–Fri)`]:[]), `From: ${me.name}`, `Received from: ${r.client}`, ''];
     r.items.forEach(i=>lines.push(`${i.desc} — ${i.qty} × ${money(r.cur,i.rate)} = ${money(r.cur,i.qty*i.rate)}`));
@@ -570,15 +633,71 @@
   };
 
   // ---------- My details ----------
-  function loadMe(){ $('mName').value=me.name||''; $('mRole').value=me.role||''; $('mContact').value=me.contact||''; $('mPrefix').value=me.prefix||'R-'; $('mRate').value=me.rate||''; $('mDesc').value=me.desc||''; $('mCur').value=me.cur||DEF.cur; $('mMethod').value=me.method||DEF.method; pickTheme(me.theme||'navy'); }
+  function loadMe(){ $('mName').value=me.name||''; $('mRole').value=me.role||''; $('mContact').value=me.contact||''; $('mPrefix').value=me.prefix||'R-'; $('mRate').value=me.rate||''; $('mDesc').value=me.desc||''; $('mCur').value=me.cur||DEF.cur; $('mMethod').value=me.method||DEF.method; pickTheme(me.theme||'navy'); if(typeof showImgs==='function') showImgs(); }
   let themeSel='navy';
   function pickTheme(t){ themeSel=t; document.querySelectorAll('#mTheme button').forEach(b=>b.classList.toggle('on', b.dataset.t===t)); }
   document.querySelectorAll('#mTheme button').forEach(b=>b.onclick=()=>{ pickTheme(b.dataset.t); me = {...me, theme:b.dataset.t}; render(); });
   $('btnMeSave').onclick = ()=>{
-    me = {name:$('mName').value.trim(), role:$('mRole').value.trim(), contact:$('mContact').value.trim(), prefix:$('mPrefix').value.trim()||'R-', rate:$('mRate').value, desc:$('mDesc').value.trim(), cur:$('mCur').value, method:$('mMethod').value, theme: themeSel, updated: Date.now()};
+    me = {name:$('mName').value.trim(), role:$('mRole').value.trim(), contact:$('mContact').value.trim(), prefix:$('mPrefix').value.trim()||'R-', rate:$('mRate').value, desc:$('mDesc').value.trim(), cur:$('mCur').value, method:$('mMethod').value, theme: themeSel, logo: me.logo||'', sig: me.sig||'', updated: Date.now()};
     store.set(KEY_ME, me); toast('Your details are saved'); sync('Update my details');
     if(!editingId && !$('fClient').value) freshForm(); else render();
     show('New');
+  };
+
+  // ---------- Logo & signature ----------
+  function loadImg(file){ return new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=fr.result; }; fr.onerror=rej; fr.readAsDataURL(file); }); }
+  function fit(src, maxW, maxH){ const w=src.width, h=src.height; const k=Math.min(1, maxW/w, maxH/h); const c=document.createElement('canvas'); c.width=Math.max(1,Math.round(w*k)); c.height=Math.max(1,Math.round(h*k)); c.getContext('2d').drawImage(src,0,0,c.width,c.height); return c; }
+  function trim(c, pad){
+    const ctx=c.getContext('2d'); const d=ctx.getImageData(0,0,c.width,c.height).data;
+    let x0=c.width, y0=c.height, x1=-1, y1=-1;
+    for(let y=0;y<c.height;y++) for(let x=0;x<c.width;x++){ if(d[(y*c.width+x)*4+3]>20){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; } }
+    if(x1<0) return null;
+    pad=pad||6; x0=Math.max(0,x0-pad); y0=Math.max(0,y0-pad); x1=Math.min(c.width-1,x1+pad); y1=Math.min(c.height-1,y1+pad);
+    const o=document.createElement('canvas'); o.width=x1-x0+1; o.height=y1-y0+1; o.getContext('2d').drawImage(c,x0,y0,o.width,o.height,0,0,o.width,o.height); return o;
+  }
+  function inkify(c){ // turn a photo of a signature into dark ink on a transparent background
+    const ctx=c.getContext('2d'); const img=ctx.getImageData(0,0,c.width,c.height); const p=img.data; const n=p.length/4;
+    const lum=new Float32Array(n); for(let i=0;i<n;i++) lum[i]=0.299*p[i*4]+0.587*p[i*4+1]+0.114*p[i*4+2];
+    const sorted=Array.from(lum).sort((a,b)=>a-b); const bg=sorted[Math.floor(n*0.85)], ink=sorted[Math.floor(n*0.01)]; const range=Math.max(40,bg-ink);
+    for(let i=0;i<n;i++){ const t=(bg-lum[i])/range; const a=Math.max(0,Math.min(1,(t-0.3)/0.4))*(p[i*4+3]/255); p[i*4]=18;p[i*4+1]=26;p[i*4+2]=48;p[i*4+3]=Math.round(a*255); }
+    ctx.putImageData(img,0,0); return c;
+  }
+  function setImage(kind, dataUrl){
+    me = {...me, [kind]: dataUrl||'', updated: Date.now()};
+    store.set(KEY_ME, me); showImgs(); render();
+    sync(dataUrl ? (kind==='sig'?'Add signature':'Add logo') : (kind==='sig'?'Remove signature':'Remove logo'));
+  }
+  function showImgs(){
+    $('logoPrev').innerHTML = me.logo ? `<img src="${me.logo}" alt="">` : 'No logo';
+    $('sigPrev').innerHTML = me.sig ? `<img src="${me.sig}" alt="">` : 'No signature';
+  }
+  $('logoFile').onchange = async e=>{
+    const f=e.target.files[0]; e.target.value=''; if(!f) return;
+    try{ const c=fit(await loadImg(f), 240, 240); setImage('logo', c.toDataURL('image/png')); toast('Logo added'); }
+    catch(err){ toast('Couldn’t read that image'); }
+  };
+  $('sigFile').onchange = async e=>{
+    const f=e.target.files[0]; e.target.value=''; if(!f) return;
+    try{ const c=trim(inkify(fit(await loadImg(f), 900, 500)), 6); if(!c){ toast('Couldn’t find a signature in that photo'); return; } setImage('sig', fit(c, 500, 170).toDataURL('image/png')); toast('Signature added'); }
+    catch(err){ toast('Couldn’t read that image'); }
+  };
+  $('logoDel').onclick = ()=>setImage('logo','');
+  $('sigDel').onclick = ()=>setImage('sig','');
+
+  // drawing pad
+  const pad=$('pad'); let pctx=null, drawing=false, inked=false, last=null;
+  function padReset(){ const r=pad.getBoundingClientRect(); const k=2; pad.width=Math.round(r.width*k); pad.height=Math.round(r.height*k); pctx=pad.getContext('2d'); pctx.lineCap='round'; pctx.lineJoin='round'; pctx.strokeStyle='#121a30'; pctx.lineWidth=5; inked=false; }
+  function pt(e){ const r=pad.getBoundingClientRect(); return {x:(e.clientX-r.left)*pad.width/r.width, y:(e.clientY-r.top)*pad.height/r.height}; }
+  pad.addEventListener('pointerdown', e=>{ drawing=true; last=pt(e); pad.setPointerCapture(e.pointerId); pctx.beginPath(); pctx.arc(last.x,last.y,2.4,0,Math.PI*2); pctx.fillStyle='#121a30'; pctx.fill(); inked=true; e.preventDefault(); });
+  pad.addEventListener('pointermove', e=>{ if(!drawing) return; const p=pt(e); pctx.beginPath(); pctx.moveTo(last.x,last.y); pctx.lineTo(p.x,p.y); pctx.stroke(); last=p; e.preventDefault(); });
+  ['pointerup','pointercancel','pointerleave'].forEach(t=>pad.addEventListener(t, ()=>{ drawing=false; }));
+  $('sigDraw').onclick = ()=>{ $('padModal').classList.add('show'); requestAnimationFrame(padReset); };
+  $('padClear').onclick = padReset;
+  $('padCancel').onclick = ()=>$('padModal').classList.remove('show');
+  $('padUse').onclick = ()=>{
+    if(!inked){ toast('Draw your signature first'); return; }
+    const c=trim(pad, 8); if(!c){ toast('Draw your signature first'); return; }
+    setImage('sig', fit(c, 500, 170).toDataURL('image/png')); $('padModal').classList.remove('show'); toast('Signature added');
   };
 
   // ---------- GitHub saving ----------
@@ -687,6 +806,7 @@
   $('addItem').onclick=()=>{ addRow(); render(); };
   $('btnSave').onclick=()=>saveReceipt();
   $('btnPdf').onclick=downloadPdf;
+  $('btnShare').onclick=sharePdf;
   $('btnCopy').onclick=copyText;
   $('btnClear').onclick=freshForm;
 
