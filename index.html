@@ -49,31 +49,34 @@
   .hint{color:var(--muted);font-size:12px;margin-top:6px}
   .sticky{position:sticky;top:12px}
   /* Receipt */
-  #receipt{background:#fff;color:#1d1d1f;padding:36px 34px;border:1px solid var(--line);border-radius:6px;font-size:14px;line-height:1.45}
-  .r-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:2px solid var(--accent);padding-bottom:14px}
-  .r-title{font-size:26px;font-weight:700;letter-spacing:.04em;color:var(--accent)}
-  .r-from{font-weight:600;font-size:16px}
-  .r-sub{color:#6b6b70;font-size:13px;white-space:pre-line}
-  .r-meta{text-align:right;font-size:13px}
-  .r-meta b{display:inline-block;min-width:80px;color:#6b6b70;font-weight:500}
-  .r-to{margin:18px 0 6px}
-  .r-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#6b6b70;font-weight:600}
-  .r-table{width:100%;border-collapse:collapse;margin-top:14px}
-  .r-table th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#6b6b70;text-align:left;border-bottom:1px solid #e4e2dc;padding:8px 6px;font-weight:600}
-  .r-table td{padding:9px 6px;border-bottom:1px solid #f0eee9;vertical-align:top}
+  #receipt{background:#fff;color:#111;padding:0 0 30px;border:1px solid #d6d3cc;border-radius:6px;font-size:14px;line-height:1.45;overflow:hidden}
+  #receipt > *:not(.r-top){margin-left:34px;margin-right:34px}
+  .r-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;background:#1f5a4b;color:#fff;padding:26px 34px 22px}
+  .r-title{font-size:30px;font-weight:700;letter-spacing:.08em;color:#fff}
+  .r-from{font-weight:700;font-size:17px;color:#fff}
+  .r-top .r-sub{color:#d5e6df}
+  .r-sub{color:#444;font-size:13px;white-space:pre-line}
+  .r-meta{text-align:right;font-size:14px;color:#fff;font-weight:600}
+  .r-meta b{display:inline-block;min-width:84px;color:#bfd8ce;font-weight:500}
+  .r-to{margin-top:22px;margin-bottom:6px}
+  .r-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#1f5a4b;font-weight:700}
+  .r-table{width:calc(100% - 68px);border-collapse:collapse;margin-top:16px}
+  .r-table th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#1f5a4b;text-align:left;background:#e3efe9;padding:9px 8px;font-weight:700}
+  .r-table td{padding:11px 8px;border-bottom:1px solid #dcd9d2;vertical-align:top;color:#111;font-weight:500}
   .r-table .num{text-align:right;white-space:nowrap}
-  .r-total{display:flex;justify-content:flex-end;margin-top:12px}
-  .r-total div{background:var(--accent-soft);padding:10px 16px;border-radius:6px;font-size:16px}
-  .r-total b{color:var(--accent);margin-left:12px;font-size:18px}
-  .r-paid{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px}
-  .r-notes{margin-top:16px;font-size:13px;white-space:pre-line}
-  .r-foot{margin-top:28px;display:flex;justify-content:space-between;align-items:flex-end;gap:16px}
-  .r-stamp{border:2px solid var(--accent);color:var(--accent);font-weight:700;padding:4px 12px;border-radius:4px;transform:rotate(-6deg);letter-spacing:.1em}
-  .r-sign{text-align:center;font-size:13px;color:#6b6b70}
-  .r-sign div{border-top:1px solid #ccc;padding-top:4px;min-width:160px;color:#1d1d1f;font-weight:500}
-  .r-inr{margin-top:14px;border:1px dashed #cfd9d4;border-radius:6px;padding:10px 14px;display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:13px;color:#6b6b70}
-  .r-inr b{font-size:17px;color:#1d1d1f}
-  .r-words{font-size:12px;color:#6b6b70;text-align:right;margin-top:4px}
+  .r-total{display:flex;justify-content:flex-end;margin-top:14px}
+  .r-total div{background:#1f5a4b;color:#fff;padding:11px 18px;border-radius:6px;font-size:16px;font-weight:600}
+  .r-total b{color:#fff;margin-left:14px;font-size:20px}
+  .r-paid{margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:14px;font-weight:600}
+  .r-notes{margin-top:16px;font-size:13px;white-space:pre-line;color:#333}
+  .r-foot{margin-top:30px;display:flex;justify-content:space-between;align-items:flex-end;gap:16px}
+  .r-stamp{border:3px solid #1f5a4b;color:#1f5a4b;font-weight:800;font-size:16px;padding:5px 14px;border-radius:4px;transform:rotate(-6deg);letter-spacing:.12em}
+  .r-sign{text-align:center;font-size:13px;color:#444}
+  .r-sign div{border-top:1.5px solid #111;padding-top:5px;min-width:170px;color:#111;font-weight:600}
+  .r-inr{margin-top:14px;border:2px solid #1f5a4b;background:#f2f8f5;border-radius:6px;padding:11px 16px;display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:13px;color:#333}
+  .r-inr .r-big{font-size:15px;font-weight:700;color:#111}
+  .r-inr b{font-size:21px;color:#1f5a4b}
+  .r-words{font-size:12px;color:#333;text-align:right;margin-top:5px;font-weight:500}
   /* History */
   .hist-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
   .hist-top input{max-width:320px}
@@ -390,7 +393,7 @@
       </table>
       <div class="r-total"><div>Total paid <b>${money(r.cur,r.total)}</b></div></div>
       ${r.cur==='₹' && r.total ? `<div class="r-words">Rupees ${words(r.total)} only</div>`:''}
-      ${r.cur!=='₹' && r.inr ? `<div class="r-inr"><div>Credited in India${r.fx?`<br>at ₹${r.fx} per ${r.cur}1 on ${fmtDate(r.date)}`:''}${r.method?` · via ${esc(r.method)}`:''}</div><b>${money('₹', r.inr)}</b></div>
+      ${r.cur!=='₹' && r.inr ? `<div class="r-inr"><div><span class="r-big">Credited in India</span>${r.fx?`<br>at ₹${r.fx} per ${r.cur}1 on ${fmtDate(r.date)}`:''}${r.method?` · via ${esc(r.method)}`:''}</div><b>${money('₹', r.inr)}</b></div>
       <div class="r-words">Rupees ${words(r.inr)} only</div>`:''}
       <div class="r-paid">
         <div><div class="r-label">Paid via</div>${esc(r.method)}</div>
